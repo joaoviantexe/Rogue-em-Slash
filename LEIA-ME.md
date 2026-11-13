@@ -21,7 +21,7 @@ desenvolvido por partes.
 | Teclado | **WASD** ou **setas** (com 2 jogadores no mesmo teclado: um usa WASD e o outro as setas) |
 | Controle (Xbox, PlayStation…) | **analógico esquerdo** ou **direcional** |
 | Celular / tablet | encoste o dedo na **metade esquerda** da tela e arraste (o direcional nasce onde o dedo encosta) |
-| Menu | **Esc**, **Start** do controle ou o botão **Menu** no canto da tela |
+| Menu | **Esc** ou **Start** do controle |
 
 ## Jogadores
 ### No mesmo aparelho (local)

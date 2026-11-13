@@ -1,10 +1,9 @@
 /* Rogue em' Slash — só o necessário para o jogo ocupar a tela. As telas (login, menu) são HTML sem estilo, por enquanto. */
-#tela, #botao-menu, #toque { display: none; }
+#tela, #toque { display: none; }
 body.jogando { margin: 0; overflow: hidden; touch-action: none; overscroll-behavior: none;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 body.jogando #telas { display: none; }
 body.jogando #tela { display: block; position: fixed; inset: 0; }
-body.jogando #botao-menu { display: block; position: fixed; top: 8px; right: 8px; z-index: 6; }
 
 /* direcional de toque (o mesmo do RL20): nasce onde o polegar encosta, na metade esquerda da tela */
 body.jogando #toque { --u: min(1vmin, 6px); display: block; position: fixed; inset: 0; z-index: 5; pointer-events: none; touch-action: none; }

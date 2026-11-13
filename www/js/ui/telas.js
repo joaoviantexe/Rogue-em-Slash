@@ -2,7 +2,7 @@
    direto no menu (jogando sem conta), e dá para entrar ou criar uma conta por ele. Sem confirmação de e-mail.
    - entrar / criar / esqueci / novaSenha: a conta (R.Contas).
    - menu: os jogadores deste aparelho (até 4, cada um com o seu controle), a sala online (criar ou entrar com o
-     código) e o botão de jogar. No jogo, Esc, Start ou o botão "Menu" voltam para cá. */
+     código) e o botão de jogar. No jogo, Esc ou Start voltam para cá. */
 (function (R) {
   'use strict';
 
@@ -175,7 +175,6 @@
       if (s) { R.Jogo.definirDispositivo(+s.dataset.jogador, s.value); T.render(); }
     });
     raiz.addEventListener('input', (ev) => { if (ev.target.name === 'codigo') T.codigo = ev.target.value; });
-    document.getElementById('botao-menu').addEventListener('click', T.abrirMenu);
     R.Input.aoMenu = T.abrirMenu;
     R.Input.aoMudarControles = () => { if (T.tela === 'menu') T.render(); };
     R.Rede.on('mudou', () => { R.Jogo.sincronizar(); if (T.tela === 'menu') T.render(); });
