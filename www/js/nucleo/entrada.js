@@ -1,7 +1,8 @@
 /* Rogue em' Slash — Entrada: teclado (2 jogadores no mesmo teclado: WASD e setas), até 4 controles (Gamepad API) e
    toque (celular/tablet). Como no RL20 (js/nucleo/entrada.js e js/nucleo/toque.js), o jogo nunca lê teclas
    diretamente: cada jogador deste aparelho tem um "dispositivo", que vira um movimento { x, y } (x para a direita, y
-   para baixo na tela, de -1 a 1). Por enquanto só o movimento (e abrir o menu). */
+   para baixo na tela, de -1 a 1), mais duas ações: "interagir" (E, Enter, Espaço; A do controle; tocar na metade direita
+   da tela) e "voltar" (Esc, Backspace; B ou Start do controle). */
 (function (R) {
   'use strict';
 
@@ -10,9 +11,10 @@
     temToque,
     // celular/tablet sem teclado nem mouse (o modelo 3D desenha sem antialiasing nesses aparelhos: mais leve)
     soToque: temToque && !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches),
-    ativo: false,   // só lê os controles com o jogo na tela (no menu, o teclado é dos campos de texto)
-    aoMenu: null,   // Esc ou Start: abre o menu
+    ativo: false,   // só lê os controles com a sala ou o jogo na tela (no login, o teclado é dos campos de texto)
+    aoAcao: null,   // (nome) chamado quando aperta "interagir" ou "voltar"
   };
+  const acao = (nome) => { if (I.ativo && I.aoAcao) I.aoAcao(nome); };
 
   /* Os dispositivos que um jogador pode usar. 'qualquer': o que nenhum outro jogador deste aparelho estiver usando. */
   I.DISPOSITIVOS = [
@@ -31,9 +33,10 @@
   };
   const DO_JOGO = new Set([...Object.values(TECLAS.tecladoA), ...Object.values(TECLAS.tecladoB)]);
   const apertadas = new Set();
+  const TECLAS_ACAO = { KeyE: 'interagir', Enter: 'interagir', NumpadEnter: 'interagir', Space: 'interagir', Escape: 'voltar', Backspace: 'voltar' };
   window.addEventListener('keydown', (ev) => {
     if (!I.ativo) return;
-    if (ev.code === 'Escape') { ev.preventDefault(); if (I.aoMenu) I.aoMenu(); return; }
+    if (TECLAS_ACAO[ev.code]) { ev.preventDefault(); if (!ev.repeat) acao(TECLAS_ACAO[ev.code]); return; }
     if (!DO_JOGO.has(ev.code)) return;
     ev.preventDefault();   // (as setas não rolam a página)
     apertadas.add(ev.code);
@@ -48,7 +51,7 @@
   }
 
   /* ---------- Controles (Gamepad API, mapeamento "standard": Xbox / PlayStation) ----------
-     Analógico esquerdo (com zona morta) ou o direcional (botões 12 a 15); Start (9) abre o menu. */
+     Analógico esquerdo (com zona morta) ou o direcional (botões 12 a 15); A (0) interage; B (1) e Start (9) voltam. */
   const ZONA_MORTA = 0.22;
   const gamepad = (i) => { const l = navigator.getGamepads ? navigator.getGamepads() : []; const g = l && l[i]; return g && g.connected ? g : null; };
   I.controleConectado = (i) => !!gamepad(i);
@@ -66,13 +69,17 @@
     const k = Math.min(1, (m - ZONA_MORTA) / (1 - ZONA_MORTA)) / m;   // (sai do zero na borda da zona morta)
     return { x: ax * k, y: ay * k };
   }
-  const startAntes = [false, false, false, false];
-  /* chamado a cada quadro: o Start de qualquer controle abre o menu */
+  const BOTOES_ACAO = [[0, 'interagir'], [1, 'voltar'], [9, 'voltar']];
+  const antes = [{}, {}, {}, {}];
+  /* chamado a cada quadro: os botões de ação dos controles (só na hora em que aperta) */
   I.atualizar = function () {
     for (let i = 0; i < 4; i++) {
-      const gp = gamepad(i), s = !!(gp && gp.buttons[9] && gp.buttons[9].pressed);
-      if (s && !startAntes[i] && I.ativo && I.aoMenu) I.aoMenu();
-      startAntes[i] = s;
+      const gp = gamepad(i);
+      BOTOES_ACAO.forEach(([b, nome]) => {
+        const s = !!(gp && gp.buttons[b] && gp.buttons[b].pressed);
+        if (s && !antes[i][b]) acao(nome);
+        antes[i][b] = s;
+      });
     }
   };
   window.addEventListener('gamepadconnected', () => { if (I.aoMudarControles) I.aoMudarControles(); });
@@ -83,7 +90,7 @@
   function criarToque() {
     const el = document.createElement('div');
     el.id = 'toque';
-    el.innerHTML = '<div class="tq-zona"><div class="tq-base"><div class="tq-pino"></div></div></div>';
+    el.innerHTML = '<div class="tq-zona"><div class="tq-base"><div class="tq-pino"></div></div></div><div class="tq-acao"></div>';
     document.body.appendChild(el);
     el.addEventListener('touchstart', (ev) => ev.preventDefault(), { passive: false });   // sem zoom nem "clique" depois do toque
     const zona = el.querySelector('.tq-zona'), base = el.querySelector('.tq-base'), pino = el.querySelector('.tq-pino');
@@ -112,6 +119,7 @@
       base.classList.add('ativa');
       mover(ev);
     });
+    el.querySelector('.tq-acao').addEventListener('pointerdown', () => acao('interagir'));   // tocar na metade direita
     zona.addEventListener('pointermove', mover);
     zona.addEventListener('pointerup', soltar);
     zona.addEventListener('pointercancel', soltar);

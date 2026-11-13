@@ -4,51 +4,51 @@ Jogo 2.5D no estilo **beat 'em up** (como Streets of Rage e Castle Crashers) par
 desenvolvido por partes.
 
 ## O que já tem
+- **Login**: HTML puro, sem estilo, com o conteúdo centralizado. A **conta é opcional** ("Jogar sem conta"); quem
+  quiser cria uma (nome de jogador, e-mail e senha) e já entra, **sem confirmação de e-mail**. Também tem "Esqueci minha
+  senha". Quem já tinha entrado antes vê "Conectado como …" com **Continuar** e **Sair da conta**.
+- **Sala** (`www/js/saguao/`): uma sala vazia vista de cima, onde cada jogador anda com um **boneco 3D Frutiger Aero**
+  (vidro colorido e brilhante; a cor é fixa por conta). Os outros jogadores online aparecem andando na mesma sala.
+- **Mesa de RPG** com 4 cadeiras, que é como se joga junto (veja "Jogar junto" abaixo).
 - **Mapa de teste**: um chão limpo (ladrilhos em xadrez, para ver o movimento), a parede do fundo e mais nada (`www/js/jogo/mapa.js`).
 - **Personagem**: um humano em **3D low poly no estilo Megaman Legends**, com o modelo do RL20 (veja abaixo).
 - **Movimento de beat 'em up**: o personagem é visto de lado e só olha para a esquerda ou para a direita. Frente e trás
   (direita e esquerda) viram o personagem; cima e baixo andam para o fundo e para a frente do chão, de lado, sem virar.
   Também na diagonal. Anda com a animação de passo e fica parado respirando quando solta o controle.
-- **Até 4 jogadores**, **locais**, **online** ou **híbrido** (alguns no mesmo aparelho e outros pela internet). Cada
-  jogador tem uma cor de roupa (vermelho, azul, verde e amarelo).
-- **Contas** (Supabase), **opcionais**: o jogo abre direto no menu e dá para jogar sem conta; quem quiser cria uma
-  (nome de jogador, e-mail e senha) e já entra, **sem confirmação de e-mail**. Também tem "Esqueci minha senha".
-- As telas (login e menu) são **HTML puro, sem estilo** por enquanto: a cara delas vai ser decidida depois.
+- **Até 4 jogadores** na partida, cada um com uma cor de roupa (vermelho, azul, verde e amarelo).
 
 ## Controles
-| Onde | Como mover |
-| --- | --- |
-| Teclado | **WASD** ou **setas** (com 2 jogadores no mesmo teclado: um usa WASD e o outro as setas) |
-| Controle (Xbox, PlayStation…) | **analógico esquerdo** ou **direcional** |
-| Celular / tablet | encoste o dedo na **metade esquerda** da tela e arraste (o direcional nasce onde o dedo encosta) |
-| Menu | **Esc** ou **Start** do controle |
+| | Teclado | Controle (Xbox, PlayStation…) | Celular / tablet |
+| --- | --- | --- | --- |
+| Andar | **WASD** ou **setas** | analógico esquerdo ou direcional | arraste o dedo na **metade esquerda** da tela |
+| Sentar / começar | **E**, **Enter** ou **Espaço** | **A** | toque na **metade direita** da tela |
+| Levantar / sair da partida | **Esc** (ou andar, para levantar) | **B** ou **Start** (ou andar) | andar, para levantar |
 
-## Jogadores
-### No mesmo aparelho (local)
-No menu, em **Jogadores neste aparelho**: **Adicionar jogador** e escolha o controle de cada um (WASD, setas, Controle 1
-a 4 ou toque). "Qualquer um" fica com o que os outros não estiverem usando. Todos dividem a mesma tela: a câmera fica no
-meio deles e ninguém sai da tela.
-
-### Online e híbrido
-- Um jogador clica em **Criar sala** e passa o código de 4 letras para os outros; eles digitam o código e clicam em
-  **Entrar na sala**.
-- Até **4 jogadores no total**, contando os de todos os aparelhos (ex.: 2 num PC + 1 num celular + 1 em outro PC).
-  Quem não couber fica de fora (o menu avisa).
-- Como funciona (o mesmo do RL20): a conexão é **direta entre os aparelhos** (WebRTC, biblioteca PeerJS). O servidor
-  público e gratuito do PeerJS só apresenta os aparelhos um ao outro — não existe servidor do jogo. Quem criou a sala é o
-  anfitrião: ele decide quem está na sala e repassa a posição de todos ~20 vezes por segundo. Cada aparelho move os
-  próprios jogadores (sem atraso para quem joga) e o anfitrião confere se a posição é possível.
+## Jogar junto (a mesa de RPG)
+- Chegue perto de uma cadeira (ela brilha) e aperte **E** para sentar. Com a mesa vazia, quem senta **abre a sala** e é o
+  anfitrião. Quem chegar depois e sentar **entra na sala dele**, sem código.
+- O anfitrião, sentado, aperta **E** de novo para **começar**: todos da mesa vão para o mapa. Quem sentar com a partida
+  em andamento entra direto nela.
+- Andar levanta da cadeira. O anfitrião levantando (ou saindo da partida com Esc) fecha a sala, e todos voltam para a sala.
+- Sem internet, dá para sentar e começar sozinho.
+- Como funciona: quem está na sala e na mesa vem do **Realtime do Supabase** (presença e movimento; como o lobby do
+  RL20). A partida usa a conexão **direta entre os aparelhos** (WebRTC, biblioteca PeerJS); o servidor público e gratuito
+  do PeerJS só apresenta os aparelhos um ao outro. O anfitrião decide quem está na sala e repassa a posição de todos
+  ~20 vezes por segundo; cada aparelho move o próprio personagem e o anfitrião confere se a posição é possível.
 - Todos precisam da **mesma versão** do jogo (se for diferente, a sala avisa ao entrar).
 - Em algumas redes (4G, redes de empresa) a conexão direta pode falhar; aí é preciso um servidor TURN (veja
   "Próximos passos" abaixo).
-- Para testar sozinho: abra o jogo em **duas janelas** do navegador (uma cria a sala, a outra entra).
+- Para testar sozinho: abra o jogo em **duas janelas** do navegador.
+- **Jogadores locais** (vários no mesmo aparelho): o jogo já sabe lidar com eles (cada um com o seu controle, dividindo a
+  tela), mas o jeito de conectar eles pela sala ainda vai ser decidido.
 
 ## Como rodar no seu computador
 ### Navegador
 - Dois cliques em `www/index.html` (não precisa de servidor), **ou**
 - `npm start` e abra `http://localhost:8080`. O terminal mostra também o endereço para abrir **no celular** (na mesma rede Wi-Fi).
 
-Sem o Supabase configurado (`www/js/config.js` vazio), as contas ficam desligadas (o resto do jogo funciona igual).
+Sem o Supabase configurado (`www/js/config.js` vazio), as contas e a sala online ficam desligadas (a sala funciona só
+neste aparelho).
 
 ### PC (Electron)
 ```bash
@@ -101,6 +101,10 @@ hora**. Para todo mundo poder recuperar a senha, configure um SMTP próprio (ex.
 domínio seu) em **Authentication → Emails → SMTP Settings**. O texto dos e-mails
 (em inglês por padrão) muda em **Authentication → Emails → Templates**. No plano gratuito, o Supabase **pausa
 projetos parados** por um tempo; se as contas pararem, reative o projeto no painel.
+
+A **sala online** usa o **Realtime** do Supabase (já vem ligado; não precisa configurar). O plano gratuito tem limite de
+conexões ao mesmo tempo e de mensagens por mês (acompanhe em **Usage** no painel). O jogo manda pouco: a presença muda
+no máximo a cada 2,5 s (o Supabase derruba quem muda rápido demais) e o movimento só quando a direção muda.
 
 ### 2a. Cloudflare (recomendado)
 O plano gratuito permite uso comercial e não tem limite de banda para arquivos estáticos. Hoje o painel da Cloudflare
@@ -174,8 +178,9 @@ www/                 o jogo (é o que vai para o navegador, o Android e o PC)
   js/nucleo/         utilidades e entrada (teclado, controles, toque)
   js/modelo/         modelo 3D, poses, folhas de quadros e aparência (do RL20)
   js/jogo/           mapa, personagem, câmera, jogadores e laço do jogo
-  js/rede/           contas (Supabase) e salas online (PeerJS)
-  js/ui/telas.js     login e menu (HTML puro)
+  js/rede/           contas (Supabase), a sala online (Supabase Realtime) e as partidas online (PeerJS)
+  js/saguao/         a sala: o renderizador 3D Frutiger Aero (WebGL, sem bibliotecas) e a cena com a mesa
+  js/ui/telas.js     login (HTML puro)
   js/main.js
 supabase/esquema.sql banco das contas (para colar no SQL Editor do Supabase)
 pc/main.js           janela do PC (Electron)

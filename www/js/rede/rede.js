@@ -21,6 +21,7 @@
     meuId: null,
     sala: [],                 // quem está na sala: [{ slot, dono, i, nome }] (dono: 'anfitriao' ou o peerId do aparelho)
     fora: 0,                  // (cliente) quantos jogadores deste aparelho ficaram de fora (sala cheia)
+    partida: false,           // a partida da sala já começou (quem entra depois vai direto para ela)
     tEnvio: 0, ordem: 0,
     ouvintes: {},
   };
@@ -98,7 +99,7 @@
         c.ok = true;
         c.conta = msg.conta && typeof msg.conta === 'object' ? { id: String(msg.conta.id || '').slice(0, 40), nome: nomeValido(msg.conta.nome) } : { id: '', nome: 'Jogador' };
         c.locais = locaisValidos(msg.locais);
-        enviar(conn, { t: 'bemvindo', v: R.VERSAO, codigo: N.codigo });
+        enviar(conn, { t: 'bemvindo', v: R.VERSAO, codigo: N.codigo, partida: N.partida });
         montarSala();
         break;
       case 'locais':   // o aparelho pôs ou tirou um jogador
@@ -175,7 +176,11 @@
   function aoMensagemCliente(msg) {
     if (!msg || typeof msg !== 'object') return;
     switch (msg.t) {
-      case 'bemvindo': N.status = 'Na sala'; N.emit('mudou'); break;
+      case 'bemvindo':
+        N.status = 'Na sala'; N.emit('mudou');
+        if (msg.partida) { N.partida = true; N.emit('iniciar'); }   // chegou com a partida em andamento: entra nela
+        break;
+      case 'iniciar': N.partida = true; N.emit('iniciar'); break;
       case 'recusado': N.sair(); falhou(msg.motivo || 'O anfitrião recusou a entrada.'); break;
       case 'sala':
         if (!Array.isArray(msg.sala)) return;
@@ -194,6 +199,13 @@
      GERAL
      ===================================================================== */
   /* os jogadores deste aparelho mudaram (menu: pôr ou tirar jogador) */
+  /* (anfitrião) começa a partida para todos da sala */
+  N.iniciarPartida = function () {
+    if (N.modo !== 'anfitriao') return;
+    N.partida = true;
+    enviarTodos({ t: 'iniciar' });
+    N.emit('iniciar');
+  };
   N.locaisMudaram = function () {
     if (N.modo === 'anfitriao') montarSala();
     else if (N.modo === 'cliente') enviar(N.conn, { t: 'locais', locais: R.Jogo.indicesLocais() });
@@ -216,7 +228,7 @@
     const p = N.peer, estava = N.modo !== 'offline';
     setTimeout(() => { try { if (p) p.destroy(); } catch (e) { /* ok */ } }, 200);
     N.peer = null; N.conn = null; N.clientes = new Map(); N.modo = 'offline'; N.codigo = null; N.status = ''; N.meuId = null;
-    N.sala = []; N.fora = 0; N.erro = null;
+    N.sala = []; N.fora = 0; N.erro = null; N.partida = false;
     if (estava) N.emit('mudou');
   };
 

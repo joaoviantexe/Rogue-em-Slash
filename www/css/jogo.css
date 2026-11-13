@@ -1,13 +1,17 @@
-/* Rogue em' Slash — só o necessário para o jogo ocupar a tela. As telas (login, menu) são HTML sem estilo, por enquanto. */
-#tela, #toque { display: none; }
-body.jogando { margin: 0; overflow: hidden; touch-action: none; overscroll-behavior: none;
+/* Rogue em' Slash — só o necessário: o login sem estilo, com o conteúdo centralizado; a sala e o jogo ocupando a tela. */
+body { margin: 0; }
+#telas { box-sizing: border-box; min-height: 100vh; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+#saguao, #tela, #toque { display: none; }
+body.saguao, body.jogando { overflow: hidden; touch-action: none; overscroll-behavior: none;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
-body.jogando #telas { display: none; }
+body.saguao #telas, body.jogando #telas { display: none; }
+body.saguao #saguao { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 body.jogando #tela { display: block; position: fixed; inset: 0; }
 
-/* direcional de toque (o mesmo do RL20): nasce onde o polegar encosta, na metade esquerda da tela */
-body.jogando #toque { --u: min(1vmin, 6px); display: block; position: fixed; inset: 0; z-index: 5; pointer-events: none; touch-action: none; }
+/* toque (o mesmo do RL20): o direcional nasce onde o polegar encosta, na metade esquerda; a metade direita interage */
+body.saguao #toque, body.jogando #toque { --u: min(1vmin, 6px); display: block; position: fixed; inset: 0; z-index: 5; pointer-events: none; touch-action: none; }
 #toque .tq-zona { position: absolute; left: 0; top: 0; width: 50%; height: 100%; pointer-events: auto; touch-action: none; }
+#toque .tq-acao { position: absolute; right: 0; top: 0; width: 50%; height: 100%; pointer-events: auto; touch-action: none; }
 #toque .tq-base { position: absolute; width: calc(var(--u) * 26); height: calc(var(--u) * 26); margin: calc(var(--u) * -13) 0 0 calc(var(--u) * -13);
   border-radius: 50%; border: 2px solid rgba(255,255,255,.28); background: rgba(255,255,255,.07); display: none; }
 #toque .tq-base.ativa { display: block; }
