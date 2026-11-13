@@ -94,10 +94,12 @@ A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare ou Vercel), **3)** volta
    ("Confirm email"). Para os primeiros testes, dá para desligar; para jogadores de verdade, deixe ligado.
 5. Envie (commit e push) o `config.js` com a URL e a chave.
 
-O e-mail padrão do Supabase (confirmação de conta, senha nova) tem **limite baixo de envios por hora** e serve para
-testes. Com mais jogadores, configure um SMTP próprio (ex.: Resend, Brevo, Amazon SES) em **Authentication → Emails →
-SMTP Settings**. No plano gratuito, o Supabase **pausa projetos parados** por um tempo; se as contas pararem, reative o
-projeto no painel.
+O e-mail padrão do Supabase (confirmação de conta, senha nova) serve **só para testes**: ele só entrega para os
+e-mails da **equipe do projeto** (Organization → Team no Supabase) e no máximo **2 e-mails por hora**. Para outras
+pessoas criarem conta: ou desligue o "Confirm email" (passo 4) enquanto testam, ou configure um SMTP próprio (ex.:
+Resend, Brevo, Amazon SES; pede um domínio seu) em **Authentication → Emails → SMTP Settings**. O texto dos e-mails
+(em inglês por padrão) muda em **Authentication → Emails → Templates**. No plano gratuito, o Supabase **pausa
+projetos parados** por um tempo; se as contas pararem, reative o projeto no painel.
 
 ### 2a. Cloudflare (recomendado)
 O plano gratuito permite uso comercial e não tem limite de banda para arquivos estáticos. Hoje o painel da Cloudflare

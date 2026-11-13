@@ -27,6 +27,9 @@
     if (cod === 'email_not_confirmed' || /not confirmed/i.test(msg)) return 'Confirme seu e-mail antes de entrar (veja a caixa de entrada e o spam).';
     if (cod === 'user_already_exists' || /already registered/i.test(msg)) return 'Já existe uma conta com este e-mail.';
     if (cod === 'weak_password' || /at least \d+ char/i.test(msg)) return 'A senha precisa ter pelo menos 6 caracteres.';
+    // o envio de e-mail padrão do Supabase (sem SMTP próprio) só manda para os e-mails da equipe do projeto
+    if (cod === 'email_address_not_authorized' || /address not authorized/i.test(msg)) return 'Ainda não dá para criar conta com este e-mail: o envio de e-mails do jogo está em modo de teste.';
+    if (/email rate limit/i.test(msg)) return 'O jogo enviou e-mails demais nesta hora. Tente de novo mais tarde.';
     if (/rate limit|too many/i.test(msg) || cod.startsWith('over_')) return 'Muitas tentativas seguidas. Espere um pouco e tente de novo.';
     if (cod === 'validation_failed' || /invalid.*email|email.*invalid/i.test(msg)) return 'E-mail inválido.';
     if (/failed to fetch|network|load failed/i.test(msg)) return 'Sem conexão com o servidor de contas.';
