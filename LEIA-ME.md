@@ -10,7 +10,7 @@ desenvolvido por partes.
   (direita e esquerda) viram o personagem; cima e baixo andam para o fundo e para a frente do chão, de lado, sem virar.
   Também na diagonal. Anda com a animação de passo e fica parado respirando quando solta o controle.
 - **Até 4 jogadores**, **locais**, **online** ou **híbrido** (alguns no mesmo aparelho e outros pela internet). Cada
-  jogador tem uma cor (vermelho, azul, verde e amarelo) e o nome em cima da cabeça.
+  jogador tem uma cor de roupa (vermelho, azul, verde e amarelo).
 - **Contas** (Supabase), **opcionais**: o jogo abre direto no menu e dá para jogar sem conta; quem quiser cria uma
   (nome de jogador, e-mail e senha) e já entra, **sem confirmação de e-mail**. Também tem "Esqueci minha senha".
 - As telas (login e menu) são **HTML puro, sem estilo** por enquanto: a cara delas vai ser decidida depois.

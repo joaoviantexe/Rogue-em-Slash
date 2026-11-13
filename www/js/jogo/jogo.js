@@ -195,7 +195,6 @@
     const ps = [...J.jogadores.values()].map((e) => e.personagem).sort((a, b) => a.z - b.z);   // quem está na frente por cima
     let podeDesenharAgora = true;
     ps.forEach((p) => { if (p.desenhar(ctx, C, podeDesenharAgora)) podeDesenharAgora = false; });
-    ps.forEach((p) => p.desenharNome(ctx, C));
     C.x = camX;
   }
 

@@ -15,12 +15,12 @@
   const K_PROF = 1.3;    // para o fundo e para a frente anda um pouco mais (no mundo): na tela, o chão "deitado" encurta
   const ATRASO = 0.1;    // segundos: o remoto é desenhado neste atraso, entre dois estados que já chegaram
 
-  /* Cor de cada jogador (1 a 4): a da roupa (até o criador de personagem existir) e a do nome. */
+  /* Cor de cada jogador (1 a 4): a da roupa (até o criador de personagem existir). */
   R.CORES_JOGADOR = {
-    1: { nome: '#ff6a5a', corPeito: '#c0302a', corPeito2: '#731d19' },
-    2: { nome: '#6aa8ff', corPeito: '#2f5fc0', corPeito2: '#1c3a78' },
-    3: { nome: '#6ee07a', corPeito: '#2f9a48', corPeito2: '#1c5e2c' },
-    4: { nome: '#ffd25a', corPeito: '#d8a020', corPeito2: '#7a5a12' },
+    1: { corPeito: '#c0302a', corPeito2: '#731d19' },
+    2: { corPeito: '#2f5fc0', corPeito2: '#1c3a78' },
+    3: { corPeito: '#2f9a48', corPeito2: '#1c5e2c' },
+    4: { corPeito: '#d8a020', corPeito2: '#7a5a12' },
   };
   R.aparenciaDoJogador = (slot) => {
     const c = R.CORES_JOGADOR[slot] || R.CORES_JOGADOR[1];
@@ -128,17 +128,6 @@
         ctx.restore();
       } else ctx.drawImage(q.cv, x0 - Math.round((q.ax / k) * T) / T, y0, q.w / k, q.h / k);
       return desenhouAgora;
-    }
-    /* o nome em cima da cabeça, na cor do jogador */
-    desenharNome(ctx, cam) {
-      if (!this.nome) return;
-      const sx = cam.sx(this.x), sy = cam.sy(this.z, 128);
-      ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,12,30,.85)'; ctx.lineJoin = 'round';
-      const txt = 'P' + this.slot + ' ' + this.nome;
-      ctx.strokeText(txt, sx, sy);
-      ctx.fillStyle = (R.CORES_JOGADOR[this.slot] || R.CORES_JOGADOR[1]).nome;
-      ctx.fillText(txt, sx, sy);
     }
   }
   Personagem.DIREITA = DIREITA; Personagem.ESQUERDA = ESQUERDA;
