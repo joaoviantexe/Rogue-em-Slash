@@ -1,0 +1,19 @@
+{
+  "name": "rogue-em-slash",
+  "version": "0.1.0",
+  "description": "Rogue em' Slash: jogo 2.5D (navegador, Android e PC).",
+  "private": true,
+  "main": "pc/main.js",
+  "scripts": {
+    "start": "node ferramentas/servidor.js",
+    "pc": "electron .",
+    "android": "cap sync android && cap open android",
+    "android:sync": "cap sync android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "electron": "^45.3.1"
+  }
+}

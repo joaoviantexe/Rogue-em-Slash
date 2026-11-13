@@ -1,0 +1,8 @@
+{
+  "appId": "com.rogueemslash.jogo",
+  "appName": "Rogue em' Slash",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#151724"
+  }
+}

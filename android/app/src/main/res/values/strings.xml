@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rogue em\' Slash</string>
+    <string name="title_activity_main">Rogue em\' Slash</string>
+    <string name="package_name">com.rogueemslash.jogo</string>
+    <string name="custom_url_scheme">com.rogueemslash.jogo</string>
+</resources>
