@@ -1,5 +1,5 @@
-/* Rogue em' Slash — Os itens do bazar em 3D (chapéus, óculos, máscaras e capacetes, na cabeça; asas e camisas, no corpo
-   do boneco da sala), montados com formas simples (sólidos de revolução, esferas e caixas) no renderizador da sala
+/* Rogue em' Slash — Os itens do bazar em 3D (chapéus, óculos, máscaras e capacetes, na cabeça; camisas, casacos, colares e
+   o que vai nas costas — asas, mochila, espada —, no corpo do boneco da sala), montados com formas simples (sólidos de revolução, esferas e caixas) no renderizador da sala
    (aero3d.js). Cada item tem uma cor que o jogador escolhe; algumas peças têm cor fixa (as lentes, a tela da TV).
    Medidas: os itens da cabeça em "cabeças" (a cabeça tem raio 1 e o centro dela é a origem); os do corpo em metros, a
    partir da base do corpo (y para cima, z para a frente do boneco). */
@@ -15,19 +15,38 @@
     bone: { nome: 'Boné', tipo: 'chapeu', cor: '#e03030' },
     fazendeiro: { nome: 'Chapéu de Fazendeiro', tipo: 'chapeu', cor: '#e8c860' },
     boina: { nome: 'Boina', tipo: 'chapeu', cor: '#c03050' },
+    halo: { nome: 'Halo', tipo: 'chapeu', cor: '#ffd84a' },
     oculos: { nome: 'Óculos', tipo: 'oculos', cor: '#202028' },
     oculos3d: { nome: 'Óculos 3D', tipo: 'oculos', cor: '#f4f4f4' },
     ski: { nome: 'Óculos de Ski', tipo: 'oculos', cor: '#30a0ff' },
     motoqueiro: { nome: 'Capacete de Motoqueiro', tipo: 'capacete', cor: '#e02828' },
     tv: { nome: 'TV de Tubo', tipo: 'capacete', cor: '#c8c0a8' },
     hoquei: { nome: 'Máscara de Hóquei', tipo: 'mascara', cor: '#f2efe6' },
-    anjo: { nome: 'Asas de Anjo', tipo: 'asas', cor: '#f6f8ff', corpo: true },
-    borboleta: { nome: 'Asas de Borboleta', tipo: 'asas', cor: '#f07ac8', corpo: true },
-    morcego: { nome: 'Asas de Morcego', tipo: 'asas', cor: '#4a2a5a', corpo: true },
+    anjo: { nome: 'Asas de Anjo', tipo: 'costas', cor: '#f6f8ff', corpo: true },
+    borboleta: { nome: 'Asas de Borboleta', tipo: 'costas', cor: '#f07ac8', corpo: true },
+    morcego: { nome: 'Asas de Morcego', tipo: 'costas', cor: '#4a2a5a', corpo: true },
+    mochila: { nome: 'Mochila', tipo: 'costas', cor: '#e8682a', corpo: true },
+    espada: { nome: 'Espada', tipo: 'costas', cor: '#7a4a24', corpo: true },
     camiseta: { nome: 'Camiseta', tipo: 'camisa', cor: '#f4f4f4', corpo: true },
+    jaqueta: { nome: 'Jaqueta', tipo: 'casaco', cor: '#2c4466', corpo: true },
+    moletom: { nome: 'Moletom', tipo: 'casaco', cor: '#8a8f98', corpo: true },
+    sobretudo: { nome: 'Sobretudo', tipo: 'casaco', cor: '#a8865a', corpo: true },
+    pingente: { nome: 'Pingente', tipo: 'colar', cor: '#d8dde6', corpo: true },
+    perolas: { nome: 'Colar de Pérolas', tipo: 'colar', cor: '#f4f0ea', corpo: true },
+    corrente: { nome: 'Corrente', tipo: 'colar', cor: '#e8b830', corpo: true },
   };
 
   /* as malhas (feitas uma vez, no primeiro desenho) */
+  /* Os perfis (raio, altura) das cascas do corpo: o do boneco e os das roupas por cima dele. */
+  const CORPO = [[0, 0], [0.3, 0], [0.37, 0.02], [0.405, 0.08], [0.415, 0.17], [0.405, 0.28], [0.375, 0.38], [0.32, 0.46], [0.235, 0.515], [0.12, 0.545], [0, 0.552]];
+  const PERFIS = {
+    camiseta: [[0.44, 0.11], [0.445, 0.17], [0.437, 0.28], [0.405, 0.385], [0.348, 0.465], [0.262, 0.522], [0.16, 0.552], [0.14, 0.558]],
+    jaqueta: [[0.468, 0.06], [0.474, 0.17], [0.467, 0.28], [0.434, 0.39], [0.374, 0.47], [0.284, 0.53], [0.178, 0.566], [0.156, 0.574]],
+    moletom: [[0.47, 0.06], [0.476, 0.17], [0.469, 0.28], [0.436, 0.39], [0.376, 0.47], [0.286, 0.53], [0.18, 0.566], [0.158, 0.574]],
+    sobretudo: [[0.505, 0.012], [0.494, 0.1], [0.481, 0.2], [0.468, 0.3], [0.434, 0.39], [0.374, 0.47], [0.284, 0.53], [0.178, 0.566], [0.156, 0.574]],
+  };
+  const ABERTOS = { jaqueta: 0.36, sobretudo: 0.3 };   // abertos na frente (o meio ângulo da abertura)
+
   let M = null;
   function malhas(r) {
     if (M && M.r === r) return M;
@@ -46,22 +65,126 @@
       faixaSki: t([[1.04, -0.14], [1.04, 0.3]], 40),
       faixaHoquei: t([[1.03, 0.05], [1.03, 0.22]], 40),
       // a camiseta: a casca do corpo um pouco maior, da barra até a gola (aberta embaixo e no pescoço)
-      camiseta: t([[0.44, 0.11], [0.445, 0.17], [0.437, 0.28], [0.405, 0.385], [0.348, 0.465], [0.262, 0.522], [0.16, 0.552], [0.14, 0.558]], 40),
+      camiseta: t(PERFIS.camiseta, 40),
       gola: t([[0.15, 0.548], [0.142, 0.578]], 32),
+      halo: r.malha(A.toro(0.75, 0.085, 40, 10)),
+      // casacos: um pouco maiores que a camiseta; a jaqueta e o sobretudo abertos na frente (mostram o que vai por baixo)
+      jaqueta: r.malha(A.torno(PERFIS.jaqueta, 40, ABERTOS.jaqueta, Math.PI * 2 - ABERTOS.jaqueta)),
+      golaJaqueta: r.malha(A.torno([[0.168, 0.56], [0.205, 0.62]], 32, 0.5, Math.PI * 2 - 0.5)),
+      moletom: t(PERFIS.moletom, 40),
+      sobretudo: r.malha(A.torno(PERFIS.sobretudo, 40, ABERTOS.sobretudo, Math.PI * 2 - ABERTOS.sobretudo)),
+      golaSobretudo: r.malha(A.torno([[0.17, 0.555], [0.28, 0.645]], 32, 0.55, Math.PI * 2 - 0.55)),
+      cinto: r.malha(A.torno([[0.476, 0.235], [0.476, 0.285]], 40, ABERTOS.sobretudo, Math.PI * 2 - ABERTOS.sobretudo)),
     };
     return M;
   }
 
+  /* ---------- Por cima da roupa ----------
+     O colar e as alças da mochila deitam na casca de fora: o corpo, ou a roupa que estiver por cima dele. Num casaco aberto
+     o colar passa por cima dele e, na abertura da frente, desce até a camisa (ou o corpo). abertos: contar os casacos
+     abertos (senão, só o que fecha na frente). */
+  function perfisPorFora(roupas, abertos) {
+    return [CORPO].concat((roupas || []).filter((id) => PERFIS[id] && (abertos || !ABERTOS[id])).map((id) => PERFIS[id]));
+  }
+  /* o raio da casca de fora na altura y e a inclinação dela (quanto o raio muda subindo) */
+  function casca(perfis, y) {
+    let raio = 0, incl = 0;
+    perfis.forEach((pf) => {
+      for (let i = 1; i < pf.length; i++) {
+        const [r0, y0] = pf[i - 1], [r1, y1] = pf[i];
+        if (y1 <= y0 || y < y0 || y > y1) continue;
+        const r = r0 + (r1 - r0) * (y - y0) / (y1 - y0);
+        if (r > raio) { raio = r; incl = (r1 - r0) / (y1 - y0); }
+        break;
+      }
+    });
+    return [raio, incl];
+  }
+  /* o ponto da casca na altura y, no ângulo a (0: a frente), afastado d dela (para fora, na direção da superfície) */
+  function naCasca(perfis, y, a, d) {
+    const [raio, incl] = casca(perfis, y), n = Math.hypot(1, incl), rr = raio + d / n;
+    return { p: [Math.sin(a) * rr, y - (incl * d) / n, Math.cos(a) * rr], rx: -Math.atan2(-incl, 1) };
+  }
+  /* uma fileira de peças ao longo dos pontos (cada uma deitada no trecho até o próximo): elos de corrente, alças... */
+  function fileira(pontos, peca, fechada) {
+    const out = [];
+    for (let i = 0; i < pontos.length - (fechada ? 0 : 1); i++) {
+      const a = pontos[i], b = pontos[(i + 1) % pontos.length], d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], h = Math.hypot(d[0], d[2]);
+      if (Math.hypot(h, d[1]) < 1e-4) continue;   // (dois pontos no mesmo lugar: nada a ligar)
+      const q = peca(i, Math.hypot(h, d[1]));
+      out.push(Object.assign(q, { p: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], ry: Math.atan2(-d[2], d[0]), rz: Math.atan2(d[1], h) }));
+    }
+    return out;
+  }
+  /* o caminho do colar: alto na nuca, descendo nos ombros até o peito */
+  const Y_PEITO = 0.44, Y_NUCA = 0.535;
+  function voltaDoColar(roupas, n, d) {
+    const dentro = perfisPorFora(roupas, false), fora = perfisPorFora(roupas, true);
+    const abertura = Math.max(0, ...(roupas || []).map((id) => ABERTOS[id] || 0));
+    return Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * Math.PI * 2, y = Y_PEITO + (Y_NUCA - Y_PEITO) * (1 - Math.cos(a)) / 2;
+      const p = naCasca(dentro, y, a, d).p, q = naCasca(fora, y, a, d).p;
+      const w = Math.min(1, Math.max(0, (Math.min(a, Math.PI * 2 - a) - abertura + 0.25) / 0.25));   // 0 na abertura, 1 no casaco
+      return p.map((v, k) => v + (q[k] - v) * w);
+    });
+  }
+
   /* As peças de um item: [{ malha, p: [x, y, z] (centro), e: [sx, sy, sz], rx, rz, cor ('item' ou '#rrggbb'), tipo, realce }].
      esconde: o item cobre a cabeça (ela nem é desenhada). */
-  function pecas(r, id) {
+  function pecas(r, id, roupas) {
     const m = malhas(r), I = 'item';
     const lente = (x, cor, e) => ({ malha: m.esfera, p: [x, 0.08, 0.98], e: e || [0.34, 0.3, 0.1], cor, tipo: 'aero' });
     const hastes = (cor) => [-1, 1].map((l) => ({ malha: m.caixa, p: [l * 0.97, 0.1, 0.5], e: [0.05, 0.06, 0.56], cor, tipo: 'aero' }));
     const asa = (l, pecasLado) => pecasLado.map((q) => Object.assign({}, q, { p: [l * q.p[0], q.p[1], q.p[2]], rz: l * (q.rz || 0), ry: l * (q.ry || 0) }));
     const duasAsas = (lado) => asa(-1, lado).concat(asa(1, lado));
     const membrana = (x, y, sx, sy, rz, cor) => ({ malha: m.esfera, p: [x, y, -0.36 - x * 0.12], e: [sx, sy, 0.026], rz, ry: -0.28, cor: cor || I, tipo: 'aero' });
+    const peito = perfisPorFora(roupas, false);
+    // o pingente (ou a medalha) no peito, de frente, deitado na roupa
+    const noPeito = (y, e) => { const c = naCasca(peito, y, 0, e[2]); return { malha: m.esfera, p: c.p, e, rx: c.rx, cor: I, tipo: 'aero' }; };
     switch (id) {
+      case 'halo': return { pecas: [{ malha: m.halo, p: [0, 1.5, -0.05], rx: -0.15, cor: I, tipo: 'aero' }] };
+      case 'jaqueta': return { pecas: [{ malha: m.jaqueta, cor: I, tipo: 'fosco' }, { malha: m.golaJaqueta, cor: I, tipo: 'fosco' },
+        { malha: m.esfera, p: [-0.4, 0.36, 0], e: [0.125, 0.11, 0.15], rz: 0.5, cor: I, tipo: 'fosco' },
+        { malha: m.esfera, p: [0.4, 0.36, 0], e: [0.125, 0.11, 0.15], rz: -0.5, cor: I, tipo: 'fosco' }] };
+      case 'moletom': return { pecas: [{ malha: m.moletom, cor: I, tipo: 'fosco' },
+        { malha: m.esfera, p: [0, 0.555, -0.21], e: [0.23, 0.14, 0.17], rx: -0.3, cor: I, tipo: 'fosco' },   // o capuz caído nas costas
+        { malha: m.caixa, p: [0, 0.2, 0.468], e: [0.34, 0.13, 0.03], cor: I, tipo: 'fosco' },                 // o bolso da frente
+        { malha: m.caixa, p: [-0.07, 0.47, 0.34], e: [0.018, 0.12, 0.018], rx: 0.5, cor: '#f4f4f4', tipo: 'fosco' },
+        { malha: m.caixa, p: [0.07, 0.47, 0.34], e: [0.018, 0.12, 0.018], rx: 0.5, cor: '#f4f4f4', tipo: 'fosco' },
+        { malha: m.esfera, p: [-0.4, 0.36, 0], e: [0.125, 0.11, 0.15], rz: 0.5, cor: I, tipo: 'fosco' },
+        { malha: m.esfera, p: [0.4, 0.36, 0], e: [0.125, 0.11, 0.15], rz: -0.5, cor: I, tipo: 'fosco' }] };
+      case 'sobretudo': return { pecas: [{ malha: m.sobretudo, cor: I, tipo: 'fosco' }, { malha: m.golaSobretudo, cor: I, tipo: 'fosco' },
+        { malha: m.cinto, cor: '#4a3020', tipo: 'fosco' },
+        { malha: m.esfera, p: [-0.41, 0.35, 0], e: [0.13, 0.12, 0.16], rz: 0.5, cor: I, tipo: 'fosco' },
+        { malha: m.esfera, p: [0.41, 0.35, 0], e: [0.13, 0.12, 0.16], rz: -0.5, cor: I, tipo: 'fosco' }] };
+      // colares: uma volta de elos (ou de pérolas) deitada nos ombros, com o pingente ou a medalha no peito
+      case 'pingente': return { pecas: fileira(voltaDoColar(roupas, 36, 0.012), (i, c) => ({ malha: m.esfera, e: [c * 0.62, 0.009, 0.009], cor: I, tipo: 'aero' }), true)
+        .concat([noPeito(Y_PEITO - 0.065, [0.045, 0.06, 0.024])]) };
+      case 'perolas': return { pecas: voltaDoColar(roupas, 22, 0.03).map((p) => ({ malha: m.esfera, p, e: [0.03, 0.03, 0.03], cor: I, tipo: 'aero' })) };
+      case 'corrente': return { pecas: fileira(voltaDoColar(roupas, 28, 0.022), (i, c) => ({ malha: m.esfera, e: i % 2 ? [c * 0.66, 0.026, 0.011] : [c * 0.66, 0.011, 0.026], cor: I, tipo: 'aero' }), true)
+        .concat([noPeito(Y_PEITO - 0.08, [0.075, 0.075, 0.02])]) };
+      case 'mochila': {   // a mochila nas costas e as duas alças passando por cima dos ombros (por cima da roupa)
+        const fora = perfisPorFora(roupas, true), atras = naCasca(fora, 0.31, Math.PI, 0.09).p;
+        const alca = (x) => {
+          const pts = [];
+          for (let i = 0; i <= 14; i++) {   // de trás (na mochila) até a frente (no peito), pela fatia do corpo em x
+            const y = 0.3 + (0.56 - 0.3) * Math.sin((i / 14) * Math.PI), lado = i < 7 ? -1 : 1;
+            const [raio] = casca(fora, Math.min(y, 0.55)), zz = Math.sqrt(Math.max(0, raio * raio - x * x)) + 0.018;
+            if (i > 0 && i < 14 && raio <= Math.abs(x) + 0.01) continue;
+            pts.push([x, Math.min(y, 0.55) + (raio <= Math.abs(x) + 0.03 ? 0.02 : 0), lado * zz]);
+          }
+          return fileira(pts, (i, c) => ({ malha: m.caixa, e: [c * 1.08, 0.022, 0.07], cor: '#2a2a30', tipo: 'fosco' }), false);
+        };
+        return { pecas: [{ malha: m.esfera, p: [0, 0.31, atras[2] - 0.04], e: [0.24, 0.25, 0.13], cor: I, tipo: 'aero' },
+          { malha: m.esfera, p: [0, 0.2, atras[2] - 0.14], e: [0.15, 0.1, 0.06], cor: I, tipo: 'aero' }].concat(alca(-0.15), alca(0.15)) };
+      }
+      case 'espada': {   // nas costas, na diagonal: a lâmina prateada e o cabo (com a guarda e o pomo) na cor do item
+        const rz = 0.6, d = [-Math.sin(rz), Math.cos(rz)], c = [0, 0.43], zE = -0.48, ponto = (k) => [c[0] + d[0] * k, c[1] + d[1] * k, zE];
+        return { pecas: [{ malha: m.caixa, p: ponto(0), e: [0.06, 0.8, 0.016], rz, cor: '#dfe6ee', tipo: 'aero' },
+          { malha: m.caixa, p: ponto(0.42), e: [0.24, 0.04, 0.05], rz, cor: I, tipo: 'aero' },
+          { malha: m.caixa, p: ponto(0.52), e: [0.04, 0.17, 0.04], rz, cor: I, tipo: 'aero' },
+          { malha: m.esfera, p: ponto(0.62), e: [0.042, 0.042, 0.042], cor: I, tipo: 'aero' }] };
+      }
       case 'hoquei': return { pecas: [{ malha: m.faixaHoquei, cor: '#2a2a30', tipo: 'aero' },
         { malha: m.esfera, p: [0, 0.0, 0.5], e: [0.86, 0.98, 0.56], cor: I, tipo: 'aero' },
         { malha: m.esfera, p: [-0.34, 0.2, 1.03], e: [0.17, 0.11, 0.03], cor: '#15151c', tipo: 'fosco' },
@@ -104,10 +227,11 @@
   }
 
   /* Põe as peças de um item na lista de desenho, presas à cabeça (ou ao corpo). cab: { x, y, z, r (raio da cabeça; no
-     corpo, 1), ry, rx (inclinação do boneco), esc ([x, y, z]: o corpo esticado ou achatado no passo) }; cor: a cor do
+     corpo, 1), ry, rx (inclinação do boneco), esc ([x, y, z]: o corpo esticado ou achatado no passo), roupas (no corpo:
+     os ids da camisa e do casaco vestidos, para o colar e as alças deitarem por cima) }; cor: a cor do
      item. Devolve true se o item cobre a cabeça. */
   function desenhar(lista, r, id, cor, cab) {
-    const def = pecas(r, id), hex = R.Aero3D.hex, k = cab.esc || [1, 1, 1];
+    const def = pecas(r, id, cab.roupas), hex = R.Aero3D.hex, k = cab.esc || [1, 1, 1];
     const cy = Math.cos(cab.ry), sy = Math.sin(cab.ry), cx = Math.cos(cab.rx || 0), sx = Math.sin(cab.rx || 0);
     def.pecas.forEach((p) => {
       const v = (p.p || [0, 0, 0]).map((a, i) => a * cab.r * k[i]), e = (p.e || [1, 1, 1]).map((a, i) => a * k[i]);
@@ -120,5 +244,5 @@
     return !!def.esconde;
   }
 
-  R.Itens3D = { ITENS, desenhar };
+  R.Itens3D = { ITENS, CORPO, desenhar };
 })(window.RES);

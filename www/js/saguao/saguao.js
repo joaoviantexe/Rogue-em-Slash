@@ -38,7 +38,7 @@
   /* ---------- Malhas ---------- */
   /* o boneco (como os ícones de pessoa do Frutiger Aero): corpo em domo, de ombros largos e redondos, e a cabeça
      grande e redonda, solta logo acima */
-  const CORPO = [[0, 0], [0.3, 0], [0.37, 0.02], [0.405, 0.08], [0.415, 0.17], [0.405, 0.28], [0.375, 0.38], [0.32, 0.46], [0.235, 0.515], [0.12, 0.545], [0, 0.552]];
+  const CORPO = R.Itens3D.CORPO;   // (o perfil do corpo fica com os itens: as roupas e o colar seguem ele)
   const CABECA = { y: 0.84, r: 0.265 };
   function malhas(r) {
     const A = R.Aero3D;
@@ -223,13 +223,13 @@
     const fx = Math.sin(b.f), fz = Math.cos(b.f), hy = CABECA.y * sy;
     const cab = { x: b.x + fx * Math.sin(rx) * hy, y: y + Math.cos(rx) * hy, z: b.z + fz * Math.sin(rx) * hy, r: CABECA.r, ry: b.f, rx };
     // os itens do bazar. Na cabeça: o capacete cobre ela inteira; senão, o chapéu, os óculos e a máscara.
-    // No corpo (presos à base dele, esticando e achatando com o passo): a camisa e as asas.
+    // No corpo (presos à base dele, esticando e achatando com o passo): a camisa, o casaco, o colar e as costas.
     let esconde = false;
     ['capacete', 'chapeu', 'oculos', 'mascara'].forEach((s) => {
       if (v[s] && !(s !== 'capacete' && v.capacete)) esconde = R.Itens3D.desenhar(lista, S.r, v[s].id, v[s].cor, cab) || esconde;
     });
-    const corpo = { x: b.x, y, z: b.z, r: 1, ry: b.f, rx, esc: [sxz, sy, sxz] };
-    ['camisa', 'asas'].forEach((s) => { if (v[s]) R.Itens3D.desenhar(lista, S.r, v[s].id, v[s].cor, corpo); });
+    const corpo = { x: b.x, y, z: b.z, r: 1, ry: b.f, rx, esc: [sxz, sy, sxz], roupas: [v.camisa && v.camisa.id, v.casaco && v.casaco.id] };
+    ['camisa', 'casaco', 'colar', 'costas'].forEach((s) => { if (v[s]) R.Itens3D.desenhar(lista, S.r, v[s].id, v[s].cor, corpo); });
     if (!esconde) lista.push({ malha: m.esfera, tipo: 'aero', cor, t: { x: cab.x, y: cab.y, z: cab.z, ry: b.f, sx: CABECA.r, sy: CABECA.r, sz: CABECA.r } });
     if (b.sentado == null) lista.push({ malha: m.plano, tipo: 'sombra', alfa: 0.32, t: { x: b.x, y: 0.003, z: b.z, sx: 0.46 - y, sy: 1, sz: 0.46 - y } });
   }

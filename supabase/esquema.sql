@@ -20,7 +20,7 @@ create table if not exists public.perfis (
   criado_em timestamptz not null default now()
 );
 create unique index if not exists perfis_nome_unico on public.perfis (lower(nome));
--- O visual do boneco da sala: { corpo, chapeu: { id, cor }, oculos, capacete, mascara, asas, camisa }
+-- O visual do boneco da sala: { corpo, chapeu: { id, cor }, oculos, capacete, mascara, camisa, casaco, colar, costas }
 alter table public.perfis add column if not exists visual jsonb;
 -- Último sinal do jogo aberto (a cada minuto): o nome de quem joga sem conta e sumiu fica livre (veja liberar_nome).
 alter table public.perfis add column if not exists visto_em timestamptz not null default now();
@@ -80,17 +80,24 @@ create table if not exists public.itens_bazar (
   ordem integer not null default 0
 );
 alter table public.itens_bazar drop constraint if exists itens_bazar_tipo_check;
-alter table public.itens_bazar add constraint itens_bazar_tipo_check check (tipo in ('chapeu', 'oculos', 'capacete', 'mascara', 'asas', 'camisa'));
+update public.itens_bazar set tipo = 'costas' where tipo = 'asas';   -- (as asas viraram o encaixe "costas")
+alter table public.itens_bazar add constraint itens_bazar_tipo_check
+  check (tipo in ('chapeu', 'oculos', 'capacete', 'mascara', 'camisa', 'casaco', 'colar', 'costas'));
 insert into public.itens_bazar (id, nome, tipo, ordem) values
   ('cowboy', 'Chapéu de Cowboy', 'chapeu', 1), ('bruxo', 'Chapéu de Bruxo', 'chapeu', 2), ('pirata', 'Chapéu de Pirata', 'chapeu', 3),
   ('cartola', 'Cartola', 'chapeu', 4), ('bone', 'Boné', 'chapeu', 5), ('fazendeiro', 'Chapéu de Fazendeiro', 'chapeu', 6),
-  ('boina', 'Boina', 'chapeu', 7),
+  ('boina', 'Boina', 'chapeu', 7), ('halo', 'Halo', 'chapeu', 8),
   ('oculos', 'Óculos', 'oculos', 1), ('oculos3d', 'Óculos 3D', 'oculos', 2), ('ski', 'Óculos de Ski', 'oculos', 3),
   ('motoqueiro', 'Capacete de Motoqueiro', 'capacete', 1), ('tv', 'TV de Tubo', 'capacete', 2),
   ('hoquei', 'Máscara de Hóquei', 'mascara', 1),
-  ('anjo', 'Asas de Anjo', 'asas', 1), ('borboleta', 'Asas de Borboleta', 'asas', 2), ('morcego', 'Asas de Morcego', 'asas', 3),
-  ('camiseta', 'Camiseta', 'camisa', 1)
+  ('anjo', 'Asas de Anjo', 'costas', 1), ('borboleta', 'Asas de Borboleta', 'costas', 2), ('morcego', 'Asas de Morcego', 'costas', 3),
+  ('mochila', 'Mochila', 'costas', 4), ('espada', 'Espada', 'costas', 5),
+  ('camiseta', 'Camiseta', 'camisa', 1),
+  ('jaqueta', 'Jaqueta', 'casaco', 1), ('moletom', 'Moletom', 'casaco', 2), ('sobretudo', 'Sobretudo', 'casaco', 3),
+  ('pingente', 'Pingente', 'colar', 1), ('perolas', 'Colar de Pérolas', 'colar', 2), ('corrente', 'Corrente', 'colar', 3)
 on conflict (id) do nothing;
+-- quem já tinha asas no visual: agora ficam em "costas"
+update public.perfis set visual = (visual - 'asas') || jsonb_build_object('costas', visual -> 'asas') where visual ? 'asas';
 
 create table if not exists public.itens_comprados (
   usuario uuid not null references auth.users (id) on delete cascade,
@@ -335,17 +342,21 @@ declare
   eu uuid := auth.uid();
   s text;
   it text;
+  limpo jsonb;
 begin
   if eu is null then raise exception 'sem login'; end if;
   if v is null or jsonb_typeof(v) <> 'object' or length(v::text) > 1000 then raise exception 'visual inválido'; end if;
-  foreach s in array array['chapeu', 'oculos', 'capacete', 'mascara', 'asas', 'camisa'] loop
+  limpo := jsonb_build_object('corpo', v -> 'corpo');   -- só guarda a cor do corpo e os encaixes conhecidos
+  foreach s in array array['chapeu', 'oculos', 'capacete', 'mascara', 'camisa', 'casaco', 'colar', 'costas'] loop
     it := v -> s ->> 'id';
-    if it is not null and not exists (select 1 from itens_bazar b where b.id = it and b.tipo = s
+    if it is null then continue; end if;
+    if not exists (select 1 from itens_bazar b where b.id = it and b.tipo = s
         and (b.preco = 0 or exists (select 1 from itens_comprados c where c.usuario = eu and c.item = it))) then
       raise exception 'item não comprado: %', it;
     end if;
+    limpo := limpo || jsonb_build_object(s, jsonb_build_object('id', it, 'cor', v -> s -> 'cor'));
   end loop;
-  update perfis set visual = v where id = eu;
+  update perfis set visual = limpo where id = eu;
 end $$;
 
 -- ---------------------------------------------------------------------------

@@ -33,16 +33,17 @@
   }
 
   /* =====================================================================
-     VISUAL DO BONECO: { corpo: '#rrggbb', chapeu: { id, cor } | null, oculos, capacete, mascara, asas, camisa }
+     VISUAL DO BONECO: { corpo: '#rrggbb', chapeu: { id, cor } | null, oculos, capacete, mascara, camisa, casaco, colar, costas }
      ===================================================================== */
   const COR = /^#[0-9a-f]{6}$/i;
-  const SLOTS = ['chapeu', 'oculos', 'capacete', 'mascara', 'asas', 'camisa'];
+  const SLOTS = ['chapeu', 'oculos', 'capacete', 'mascara', 'camisa', 'casaco', 'colar', 'costas'];
   S.SLOTS = SLOTS;
   /* só o formato esperado (vem de outro aparelho ou do banco) */
   S.visualValido = function (v, corPadrao) {
     const o = { corpo: corPadrao || '#1f8ff0' };
     SLOTS.forEach((s) => { o[s] = null; });
     if (!v || typeof v !== 'object') return o;
+    if (v.asas && !v.costas) v = Object.assign({}, v, { costas: v.asas });   // (as asas eram um encaixe só delas: viraram "costas")
     if (COR.test(v.corpo)) o.corpo = v.corpo.toLowerCase();
     SLOTS.forEach((s) => {
       const it = v[s], def = it && R.Itens3D && R.Itens3D.ITENS[it.id];

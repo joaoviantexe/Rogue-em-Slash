@@ -57,20 +57,39 @@
     }
     return { pos, nor, idx };
   }
-  /* sólido de revolução: perfil [[raio, y], …] de baixo para cima (feche com raio 0 nas pontas), normais lisas */
-  function torno(perfil, seg) {
+  /* sólido de revolução: perfil [[raio, y], …] de baixo para cima (feche com raio 0 nas pontas), normais lisas.
+     a0, a1: o pedaço da volta (0 = a frente, +z); sem eles, a volta inteira (com eles, um casaco aberto na frente) */
+  function torno(perfil, seg, a0, a1) {
     seg = seg || 32;
+    if (a0 == null) { a0 = 0; a1 = Math.PI * 2; }
     const pos = [], nor = [], idx = [], n = perfil.length;
     perfil.forEach(([r, y], j) => {
       const a = perfil[Math.max(0, j - 1)], b = perfil[Math.min(n - 1, j + 1)];
       let nr = b[1] - a[1], ny = -(b[0] - a[0]);   // a tangente do perfil girada para fora
       const l = Math.hypot(nr, ny) || 1; nr /= l; ny /= l;
       for (let i = 0; i <= seg; i++) {
-        const u = (i / seg) * Math.PI * 2, s = Math.sin(u), c = Math.cos(u);
+        const u = a0 + (i / seg) * (a1 - a0), s = Math.sin(u), c = Math.cos(u);
         pos.push(r * s, y, r * c); nor.push(nr * s, ny, nr * c);
       }
     });
     for (let j = 0; j < n - 1; j++) for (let i = 0; i < seg; i++) {
+      const a = j * (seg + 1) + i, b = a + seg + 1;
+      idx.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    return { pos, nor, idx };
+  }
+  /* anel (toro) deitado no chão: raio R até o meio do tubo, tubo de raio r (o halo, os colares) */
+  function toro(R0, r0, seg, segTubo) {
+    seg = seg || 40; segTubo = segTubo || 12;
+    const pos = [], nor = [], idx = [];
+    for (let j = 0; j <= segTubo; j++) {
+      const v = (j / segTubo) * Math.PI * 2, cv = Math.cos(v), sv = Math.sin(v);
+      for (let i = 0; i <= seg; i++) {
+        const u = (i / seg) * Math.PI * 2, su = Math.sin(u), cu = Math.cos(u);
+        pos.push((R0 + r0 * cv) * su, r0 * sv, (R0 + r0 * cv) * cu); nor.push(cv * su, sv, cv * cu);
+      }
+    }
+    for (let j = 0; j < segTubo; j++) for (let i = 0; i < seg; i++) {
       const a = j * (seg + 1) + i, b = a + seg + 1;
       idx.push(a, b, a + 1, a + 1, b, b + 1);
     }
@@ -230,5 +249,5 @@
 
   const hex = (h) => { const n = parseInt(h.replace('#', ''), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
 
-  R.Aero3D = { criar, esfera, torno, caixa, plano, hex };
+  R.Aero3D = { criar, esfera, torno, toro, caixa, plano, hex };
 })(window.RES);

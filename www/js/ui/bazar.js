@@ -1,5 +1,5 @@
-/* Rogue em' Slash — Editor do boneco da sala (a mesa do bazar): a cor do corpo (grátis) e os itens — camisas, chapéus,
-   óculos, máscaras, capacetes e asas —, cada um com a cor que o jogador quiser. Os itens custam moedas (preço na tabela
+/* Rogue em' Slash — Editor do boneco da sala (a mesa do bazar): a cor do corpo (grátis) e os itens — camisas, casacos,
+   colares, chapéus, óculos, máscaras, capacetes e costas (asas, mochila, espada) —, cada um com a cor que o jogador quiser. Os itens custam moedas (preço na tabela
    itens_bazar do Supabase); comprado uma vez, é dele. O capacete cobre a cabeça inteira: com ele não vai chapéu, óculos
    nem máscara; a máscara e os óculos também não vão juntos (os dois ficam nos olhos).
    A câmera chega perto do boneco e ele muda na hora; ao fechar (Pronto, Esc ou B), o visual é salvo na conta (sem conta,
@@ -11,7 +11,8 @@
   let el = null;
   const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const S = () => R.Social;
-  const ABAS = [['corpo', 'Corpo'], ['camisa', 'Camisas'], ['chapeu', 'Chapéus'], ['oculos', 'Óculos'], ['mascara', 'Máscaras'], ['capacete', 'Capacetes'], ['asas', 'Asas']];
+  const ABAS = [['corpo', 'Corpo'], ['camisa', 'Camisas'], ['casaco', 'Casacos'], ['colar', 'Colares'], ['chapeu', 'Chapéus'], ['oculos', 'Óculos'],
+    ['mascara', 'Máscaras'], ['capacete', 'Capacetes'], ['costas', 'Costas']];
 
   /* os itens de um encaixe: os do banco (com preço) ou, sem ele, os do jogo */
   function itensDe(tipo) {

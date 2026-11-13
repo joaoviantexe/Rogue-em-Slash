@@ -11,9 +11,10 @@ desenvolvido por partes.
   (vidro colorido e brilhante; a cor é fixa por conta). Os outros jogadores online aparecem andando na mesma sala.
 - **Mesa de RPG** com 4 cadeiras, que é como se joga junto (veja "Jogar junto" abaixo).
 - **Mesa do bazar**: o editor do boneco. A **cor do corpo é grátis**; os itens custam moedas e cada um tem a cor que o
-  jogador quiser: **camisas** (Camiseta), **chapéus** (Cowboy, Bruxo, Pirata, Cartola, Boné, Fazendeiro, Boina),
-  **óculos** (Óculos, Óculos 3D, Óculos de Ski), **máscaras** (Máscara de Hóquei), **capacetes** (Motoqueiro, TV de
-  Tubo) e **asas** (Anjo, Borboleta, Morcego). O capacete cobre a cabeça, então não vai junto com chapéu, óculos nem
+  jogador quiser: **camisas** (Camiseta), **casacos** (Jaqueta, Moletom, Sobretudo), **colares** (Pingente, Colar de
+  Pérolas, Corrente), **chapéus** (Cowboy, Bruxo, Pirata, Cartola, Boné, Fazendeiro, Boina, Halo), **óculos** (Óculos,
+  Óculos 3D, Óculos de Ski), **máscaras** (Máscara de Hóquei), **capacetes** (Motoqueiro, TV de Tubo) e **costas**
+  (Asas de Anjo, de Borboleta e de Morcego, Mochila, Espada). O capacete cobre a cabeça, então não vai junto com chapéu, óculos nem
   máscara; máscara e óculos também não vão juntos (os dois ficam nos olhos). A câmera chega perto do boneco e ele muda
   na hora; os outros jogadores veem o visual novo.
 - **Moedas**: saldo na conta, gasto no bazar. Por enquanto só entram pelo painel do Supabase (veja "Moedas" abaixo).
