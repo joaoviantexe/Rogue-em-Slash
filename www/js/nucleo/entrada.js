@@ -1,8 +1,9 @@
 /* Rogue em' Slash — Entrada: teclado (2 jogadores no mesmo teclado: WASD e setas), até 4 controles (Gamepad API) e
    toque (celular/tablet). Como no RL20 (js/nucleo/entrada.js e js/nucleo/toque.js), o jogo nunca lê teclas
    diretamente: cada jogador deste aparelho tem um "dispositivo", que vira um movimento { x, y } (x para a direita, y
-   para baixo na tela, de -1 a 1), mais duas ações: "interagir" (E, Enter, Espaço; A do controle; tocar na metade direita
-   da tela) e "voltar" (Esc, Backspace; B ou Start do controle). */
+   para baixo na tela, de -1 a 1), mais as ações: "interagir" (E, Espaço; A do controle; tocar na metade direita da tela),
+   "voltar" (Backspace; B do controle), "celular" (Esc; Start do controle) e "chat" (Enter ou T).
+   Digitando num campo de texto, as teclas são do campo (ninguém anda nem interage). */
 (function (R) {
   'use strict';
 
@@ -12,8 +13,11 @@
     // celular/tablet sem teclado nem mouse (o modelo 3D desenha sem antialiasing nesses aparelhos: mais leve)
     soToque: temToque && !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches),
     ativo: false,   // só lê os controles com a sala ou o jogo na tela (no login, o teclado é dos campos de texto)
-    aoAcao: null,   // (nome) chamado quando aperta "interagir" ou "voltar"
+    parado: false,  // com o celular, o chat ou o bazar abertos: as ações continuam, mas ninguém anda
+    aoAcao: null,   // (nome) chamado quando aperta uma ação
+    aoToque: null,  // (x, y) toque na metade direita da tela: devolve true se usou o toque (ex.: tocou num jogador)
   };
+  const digitando = (ev) => !!(ev && ev.target && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName));
   const acao = (nome) => { if (I.ativo && I.aoAcao) I.aoAcao(nome); };
 
   /* Os dispositivos que um jogador pode usar. 'qualquer': o que nenhum outro jogador deste aparelho estiver usando. */
@@ -33,9 +37,9 @@
   };
   const DO_JOGO = new Set([...Object.values(TECLAS.tecladoA), ...Object.values(TECLAS.tecladoB)]);
   const apertadas = new Set();
-  const TECLAS_ACAO = { KeyE: 'interagir', Enter: 'interagir', NumpadEnter: 'interagir', Space: 'interagir', Escape: 'voltar', Backspace: 'voltar' };
+  const TECLAS_ACAO = { KeyE: 'interagir', Space: 'interagir', Backspace: 'voltar', Escape: 'celular', Enter: 'chat', NumpadEnter: 'chat', KeyT: 'chat' };
   window.addEventListener('keydown', (ev) => {
-    if (!I.ativo) return;
+    if (!I.ativo || digitando(ev)) return;
     if (TECLAS_ACAO[ev.code]) { ev.preventDefault(); if (!ev.repeat) acao(TECLAS_ACAO[ev.code]); return; }
     if (!DO_JOGO.has(ev.code)) return;
     ev.preventDefault();   // (as setas não rolam a página)
@@ -69,7 +73,7 @@
     const k = Math.min(1, (m - ZONA_MORTA) / (1 - ZONA_MORTA)) / m;   // (sai do zero na borda da zona morta)
     return { x: ax * k, y: ay * k };
   }
-  const BOTOES_ACAO = [[0, 'interagir'], [1, 'voltar'], [9, 'voltar']];
+  const BOTOES_ACAO = [[0, 'interagir'], [1, 'voltar'], [9, 'celular']];
   const antes = [{}, {}, {}, {}];
   /* chamado a cada quadro: os botões de ação dos controles (só na hora em que aperta) */
   I.atualizar = function () {
@@ -119,7 +123,10 @@
       base.classList.add('ativa');
       mover(ev);
     });
-    el.querySelector('.tq-acao').addEventListener('pointerdown', () => acao('interagir'));   // tocar na metade direita
+    el.querySelector('.tq-acao').addEventListener('pointerdown', (ev) => {   // tocar na metade direita: num jogador, o menu dele
+      if (I.ativo && I.aoToque && I.aoToque(ev.clientX, ev.clientY)) return;
+      acao('interagir');
+    });
     zona.addEventListener('pointermove', mover);
     zona.addEventListener('pointerup', soltar);
     zona.addEventListener('pointercancel', soltar);
@@ -137,7 +144,7 @@
   /* O movimento de um dispositivo. ocupados: os que outros jogadores deste aparelho usam (o 'qualquer' pula esses e
      fica com o mais inclinado dos que sobram). */
   I.movimento = function (d, ocupados) {
-    if (!I.ativo) return { x: 0, y: 0 };
+    if (!I.ativo || I.parado) return { x: 0, y: 0 };
     if (d !== 'qualquer') return deDispositivo(d);
     let melhor = { x: 0, y: 0 }, m = 0;
     for (const r of REAIS) {

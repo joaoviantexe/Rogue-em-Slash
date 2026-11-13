@@ -10,6 +10,15 @@ desenvolvido por partes.
 - **Sala** (`www/js/saguao/`): uma sala vazia vista de cima, onde cada jogador anda com um **boneco 3D Frutiger Aero**
   (vidro colorido e brilhante; a cor é fixa por conta). Os outros jogadores online aparecem andando na mesma sala.
 - **Mesa de RPG** com 4 cadeiras, que é como se joga junto (veja "Jogar junto" abaixo).
+- **Mesa do bazar**: o editor do boneco. A **cor do corpo é grátis**; os itens custam moedas e cada um tem a cor que o
+  jogador quiser: **chapéus** (Cowboy, Bruxo, Pirata, Cartola, Boné, Fazendeiro, Boina), **óculos** (Óculos, Óculos 3D,
+  Óculos de Ski) e **capacetes** (Motoqueiro, TV de Tubo; o capacete cobre a cabeça, então não vai junto com chapéu nem
+  óculos). A câmera chega perto do boneco e ele muda na hora; os outros jogadores veem o visual novo.
+- **Moedas**: saldo na conta, gasto no bazar. Por enquanto só entram pelo painel do Supabase (veja "Moedas" abaixo).
+- **Chat da sala** (Enter) e **sussurros**; **clicar em outro jogador** abre o menu dele: **Sussurrar** e **Adicionar amigo**.
+- **Celular** (Esc): sobe do canto da tela, com os apps **Amigos** (amigos, pedidos e adicionar pelo nome) e
+  **Configurações** (nome de jogador, senha nova e sair da conta).
+- Chat, amigos, sussurros e itens pedem conta; sem conta dá para andar na sala, ler o chat, jogar e trocar a cor do corpo.
 - **Mapa de teste**: um chão limpo (ladrilhos em xadrez, para ver o movimento), a parede do fundo e mais nada (`www/js/jogo/mapa.js`).
 - **Personagem**: um humano em **3D low poly no estilo Megaman Legends**, com o modelo do RL20 (veja abaixo).
 - **Movimento de beat 'em up**: o personagem é visto de lado e só olha para a esquerda ou para a direita. Frente e trás
@@ -21,8 +30,11 @@ desenvolvido por partes.
 | | Teclado | Controle (Xbox, PlayStation…) | Celular / tablet |
 | --- | --- | --- | --- |
 | Andar | **WASD** ou **setas** | analógico esquerdo ou direcional | arraste o dedo na **metade esquerda** da tela |
-| Sentar / começar | **E**, **Enter** ou **Espaço** | **A** | toque na **metade direita** da tela |
-| Levantar / sair da partida | **Esc** (ou andar, para levantar) | **B** ou **Start** (ou andar) | andar, para levantar |
+| Sentar / começar / abrir o bazar | **E** ou **Espaço** | **A** | toque na **metade direita** da tela |
+| Celular (na sala) / sair da partida | **Esc** | **Start** | — |
+| Chat | **Enter** ou **T** (Esc fecha) | — | toque nas mensagens |
+| Menu de outro jogador | clique nele | — | toque nele |
+| Voltar / levantar | **Backspace** (ou andar, para levantar) | **B** (ou andar) | andar, para levantar |
 
 ## Jogar junto (a mesa de RPG)
 - Chegue perto de uma cadeira (ela brilha) e aperte **E** para sentar. Com a mesa vazia, quem senta **abre a sala** e é o
@@ -78,9 +90,10 @@ A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare ou Vercel), **3)** volta
 1. Crie uma conta em [supabase.com](https://supabase.com) e um **projeto novo** (plano gratuito). Na região, escolha
    **South America (São Paulo)**, a mais perto dos jogadores do Brasil. Guarde a senha do banco num lugar seguro (o jogo
    não usa).
-2. No projeto, abra **SQL Editor**, cole o arquivo `supabase/esquema.sql` inteiro e clique em **Run**. Ele cria a tabela
-   de perfis (o nome de jogador) e as regras de segurança: cada jogador só vê o próprio perfil. Pode rodar de novo depois
-   de uma atualização do jogo.
+2. No projeto, abra **SQL Editor**, cole o arquivo `supabase/esquema.sql` inteiro e clique em **Run**. Ele cria as
+   tabelas (perfis, amigos, chat, moedas, itens do bazar) e as regras de segurança: cada jogador só vê o que é dele, e
+   moedas só mudam pelas funções que conferem as regras. **Rode de novo a cada atualização do jogo** (a versão 0.4 precisa:
+   chat, amigos, moedas e bazar).
 3. Em **Project Settings → API Keys**, copie a **Project URL** e a chave **publicável** (`sb_publishable_…`; em projetos
    antigos, a **anon / public**) e cole em `www/js/config.js`:
    ```js
@@ -101,6 +114,13 @@ hora**. Para todo mundo poder recuperar a senha, configure um SMTP próprio (ex.
 domínio seu) em **Authentication → Emails → SMTP Settings**. O texto dos e-mails
 (em inglês por padrão) muda em **Authentication → Emails → Templates**. No plano gratuito, o Supabase **pausa
 projetos parados** por um tempo; se as contas pararem, reative o projeto no painel.
+
+### Moedas (por enquanto, pelo painel)
+- **Dar moedas** a um jogador: no **SQL Editor**, `select public.dar_moedas('NomeDoJogador', 100);` (com o motivo:
+  `select public.dar_moedas('NomeDoJogador', 100, 'evento');`; número negativo tira). O jogo não consegue chamar essa função.
+- **Preços**: na tabela **itens_bazar** (Table Editor), coluna `preco` (0 = grátis; começam todos em 10). `ativo = false`
+  tira o item do bazar (quem comprou continua usando). Rodar o `esquema.sql` de novo não mexe nos preços.
+- O extrato de cada jogador fica em **movimentos_moedas**.
 
 A **sala online** usa o **Realtime** do Supabase (já vem ligado; não precisa configurar). O plano gratuito tem limite de
 conexões ao mesmo tempo e de mensagens por mês (acompanhe em **Usage** no painel). O jogo manda pouco: a presença muda
@@ -179,10 +199,11 @@ www/                 o jogo (é o que vai para o navegador, o Android e o PC)
   js/modelo/         modelo 3D, poses, folhas de quadros e aparência (do RL20)
   js/jogo/           mapa, personagem, câmera, jogadores e laço do jogo
   js/rede/           contas (Supabase), a sala online (Supabase Realtime) e as partidas online (PeerJS)
-  js/saguao/         a sala: o renderizador 3D Frutiger Aero (WebGL, sem bibliotecas) e a cena com a mesa
-  js/ui/telas.js     login (HTML puro)
+  js/saguao/         a sala: o renderizador 3D Frutiger Aero (WebGL, sem bibliotecas), os itens do bazar em 3D e a cena
+  js/rede/social.js  chat e sussurros, amigos, moedas, bazar e visual (Supabase)
+  js/ui/             login (HTML puro), celular, chat, menu de outro jogador e o editor do bazar
   js/main.js
-supabase/esquema.sql banco das contas (para colar no SQL Editor do Supabase)
+supabase/esquema.sql banco (contas, amigos, chat, moedas, bazar), para colar no SQL Editor do Supabase
 pc/main.js           janela do PC (Electron)
 android/             projeto Android (Capacitor)
 ferramentas/         servidor local (npm start)
@@ -192,3 +213,4 @@ Sem módulos nem etapa de build (como o RL20): os arquivos usam o espaço global
 
 ## Planejado (ainda não feito)
 - **Criador de personagem** igual ao do RL20.
+- **Comprar moedas** com dinheiro (1 real = 1 moeda), depois de escolher o serviço de pagamento.

@@ -5,7 +5,7 @@ window.RES = window.RES || {};
 (function (R) {
   'use strict';
 
-  R.VERSAO = '0.3.0';
+  R.VERSAO = '0.4.0';
 
   R.clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   R.lerp = (a, b, t) => a + (b - a) * t;

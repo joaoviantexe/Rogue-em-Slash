@@ -4,7 +4,9 @@
      vazia, quem senta cria a sala online e é o anfitrião; quem chega depois e senta entra na sala dele (sem código).
    - O anfitrião, sentado, aperta de novo para começar a partida: todos da mesa vão para o mapa. Quem sentar com a
      partida em andamento entra direto nela.
-   - Para levantar, é só andar (ou Esc / B). O anfitrião levantando fecha a sala.
+   - Para levantar, é só andar (ou B do controle / Backspace). O anfitrião levantando fecha a sala.
+   - A mesa do bazar: perto dela, o mesmo botão abre o editor do boneco (R.Bazar); a câmera chega perto dele.
+   - Clicar (ou tocar) em outro jogador abre o menu dele (R.MenuJogador: sussurrar, adicionar amigo).
    Os outros jogadores vêm de R.SaguaoOnline (Supabase Realtime); as salas, de R.Rede (PeerJS).
    Mundo: x para a direita, y para cima, z para a câmera; 1 unidade = 1 metro. */
 (function (R) {
@@ -25,8 +27,12 @@
   const RAIO = 0.34;        // o boneco no chão (para não atravessar a mesa e as cadeiras)
   const VEL = 3, ACEL = 14; // metros por segundo; arranque
   const ALCANCE = 1.3;      // de quão perto dá para sentar numa cadeira
+  /* a mesa do bazar (com alguns itens em cima, de mostruário) e de quão perto da borda dela dá para abrir o editor */
+  const BAZAR = { x: 3.9, z: 0.5, w: 1.7, d: 0.8, h: 0.74 };
+  const ALCANCE_BAZAR = 0.85;
 
-  const S = { visivel: false, eu: null, r: null, m: null, cam: { x: 0, z: 2 }, t: 0, alvoCadeira: -1, entrarPendente: false, modoAntes: 'offline' };
+  const S = { visivel: false, eu: null, r: null, m: null, cam: { x: 0, z: 2 }, t: 0, alvoCadeira: -1, alvoBazar: false, entrarPendente: false, modoAntes: 'offline',
+    foco: null, zoom: 0 };   // foco 'bazar': a câmera chega perto do boneco (o editor está aberto)
   const O = () => R.SaguaoOnline;
 
   /* ---------- Malhas ---------- */
@@ -40,7 +46,7 @@
   }
   const COR = {
     piso: R.Aero3D.hex('#f3f6f9'), parede: R.Aero3D.hex('#e8f0f7'), rodape: R.Aero3D.hex('#c3d3e2'),
-    madeira: R.Aero3D.hex('#9a6a44'), feltro: R.Aero3D.hex('#2f7a5a'), cadeira: R.Aero3D.hex('#a8754c'),
+    madeira: R.Aero3D.hex('#9a6a44'), feltro: R.Aero3D.hex('#2f7a5a'), cadeira: R.Aero3D.hex('#a8754c'), bazar: R.Aero3D.hex('#3fb8c8'),
   };
 
   /* ---------- O meu boneco ---------- */
@@ -48,15 +54,18 @@
     const o = O().meu();
     return { x: o.x, z: o.z, vx: 0, vz: 0, f: o.f, fase: 0, sentado: null };
   }
-  /* não atravessa as paredes, a mesa e as cadeiras */
+  /* não atravessa as paredes, as mesas e as cadeiras */
+  function foraDaCaixa(p, b) {
+    const hx = b.w / 2 + RAIO, hz = b.d / 2 + RAIO, dx = p.x - b.x, dz = p.z - b.z;
+    if (Math.abs(dx) < hx && Math.abs(dz) < hz) {   // dentro da mesa: sai pelo lado mais perto
+      if (hx - Math.abs(dx) < hz - Math.abs(dz)) p.x = b.x + Math.sign(dx || 1) * hx;
+      else p.z = b.z + Math.sign(dz || 1) * hz;
+    }
+  }
   function colidir(p) {
     p.x = R.clamp(p.x, SALA.x0 + RAIO, SALA.x1 - RAIO);
     p.z = R.clamp(p.z, SALA.z0 + RAIO, SALA.z1 - RAIO);
-    const hx = MESA.w / 2 + RAIO, hz = MESA.d / 2 + RAIO, dx = p.x - MESA.x, dz = p.z - MESA.z;
-    if (Math.abs(dx) < hx && Math.abs(dz) < hz) {   // dentro da mesa: sai pelo lado mais perto
-      if (hx - Math.abs(dx) < hz - Math.abs(dz)) p.x = MESA.x + Math.sign(dx || 1) * hx;
-      else p.z = MESA.z + Math.sign(dz || 1) * hz;
-    }
+    foraDaCaixa(p, MESA); foraDaCaixa(p, BAZAR);
     CADEIRAS.forEach((c) => {
       const ex = p.x - c.x, ez = p.z - c.z, d = Math.hypot(ex, ez), min = 0.27 + RAIO;
       if (d < min && d > 0.0001) { p.x = c.x + (ex / d) * min; p.z = c.z + (ez / d) * min; }
@@ -100,10 +109,19 @@
   };
   S.sentado = () => !!(S.eu && S.eu.sentado != null);
 
-  /* E / Enter / Espaço / A / toque: senta na cadeira mais perto; sentado, o anfitrião começa a partida */
+  /* perto da mesa do bazar (da borda dela) */
+  function pertoDoBazar() {
+    const eu = S.eu, dx = Math.max(0, Math.abs(eu.x - BAZAR.x) - BAZAR.w / 2), dz = Math.max(0, Math.abs(eu.z - BAZAR.z) - BAZAR.d / 2);
+    return Math.hypot(dx, dz) < ALCANCE_BAZAR;
+  }
+  /* E / Espaço / A / toque: senta na cadeira mais perto (ou abre o bazar); sentado, o anfitrião começa a partida */
   S.interagir = function () {
-    if (!S.visivel || !S.eu) return;
-    if (S.eu.sentado == null) { const i = cadeiraPerto(); if (i >= 0) sentar(i); return; }
+    if (!S.visivel || !S.eu || S.foco) return;
+    if (S.eu.sentado == null) {
+      const i = cadeiraPerto();
+      if (i >= 0) sentar(i); else if (pertoDoBazar()) R.Bazar.abrir();
+      return;
+    }
     const anf = O().mesa().anfitriao;
     if (R.Rede.modo === 'anfitriao') R.Rede.iniciarPartida();
     else if (R.Rede.modo === 'offline' && (!anf || anf === O().meu())) R.Fluxo.irPartida();   // sem internet: joga sozinho
@@ -164,9 +182,12 @@
       if (dt > 0) { eu.vx = (eu.x - x0) / dt; eu.vz = (eu.z - z0) / dt; }   // (o que a parede segurou não conta)
       if (mag > 0.1) eu.f = girar(eu.f, Math.atan2(mov.x, mov.y), dt * 12);
     }
+    if (S.foco === 'bazar') eu.f = girar(eu.f, 0, dt * 8);   // no editor, de frente para a câmera
     eu.fase += dt * Math.hypot(eu.vx, eu.vz) * 3.2;
     O().mover(eu.x, eu.z, eu.vx, eu.vz, eu.f);
-    S.alvoCadeira = eu.sentado == null ? cadeiraPerto() : -1;
+    S.alvoCadeira = eu.sentado == null && !S.foco ? cadeiraPerto() : -1;
+    S.alvoBazar = eu.sentado == null && !S.foco && S.alvoCadeira < 0 && pertoDoBazar();
+    S.zoom += ((S.foco ? 1 : 0) - S.zoom) * Math.min(1, dt * 6);
     // os outros: seguem a última velocidade que mandaram, suavizando a posição mostrada
     const agora = performance.now();
     O().outros.forEach((o) => {
@@ -189,7 +210,7 @@
 
   /* ---------- Desenhar ---------- */
   function boneco(lista, b) {
-    const m = S.m, cor = R.Aero3D.hex(b.cor), vel = Math.hypot(b.vx || 0, b.vz || 0), k = Math.min(1, vel / 2);
+    const v = b.visual || {}, m = S.m, cor = R.Aero3D.hex(v.corpo || b.cor), vel = Math.hypot(b.vx || 0, b.vz || 0), k = Math.min(1, vel / 2);
     let y = 0, rx = 0, sy = 1 + Math.sin(S.t * 2.2 + (b.x || 0)) * 0.012;   // parado: respira
     if (b.sentado != null) { y = ASSENTO; sy *= 0.94; b = Object.assign({}, b, { x: b.x + Math.sin(b.f) * NA_FRENTE, z: b.z + Math.cos(b.f) * NA_FRENTE }); }
     else if (k > 0.02) {   // andando: pulinhos, inclinado para a frente
@@ -200,7 +221,13 @@
     const sxz = 1 / Math.sqrt(sy);
     lista.push({ malha: m.corpo, tipo: 'aero', cor, t: { x: b.x, y, z: b.z, ry: b.f, rx, sx: sxz, sy, sz: sxz } });
     const fx = Math.sin(b.f), fz = Math.cos(b.f), hy = CABECA.y * sy;
-    lista.push({ malha: m.esfera, tipo: 'aero', cor, t: { x: b.x + fx * Math.sin(rx) * hy, y: y + Math.cos(rx) * hy, z: b.z + fz * Math.sin(rx) * hy, ry: b.f, sx: CABECA.r, sy: CABECA.r, sz: CABECA.r } });
+    const cab = { x: b.x + fx * Math.sin(rx) * hy, y: y + Math.cos(rx) * hy, z: b.z + fz * Math.sin(rx) * hy, r: CABECA.r, ry: b.f, rx };
+    // os itens do bazar: o capacete cobre a cabeça inteira; senão, o chapéu e os óculos
+    let esconde = false;
+    ['capacete', 'chapeu', 'oculos'].forEach((s) => {
+      if (v[s] && !(s !== 'capacete' && v.capacete)) esconde = R.Itens3D.desenhar(lista, S.r, v[s].id, v[s].cor, cab) || esconde;
+    });
+    if (!esconde) lista.push({ malha: m.esfera, tipo: 'aero', cor, t: { x: cab.x, y: cab.y, z: cab.z, ry: b.f, sx: CABECA.r, sy: CABECA.r, sz: CABECA.r } });
     if (b.sentado == null) lista.push({ malha: m.plano, tipo: 'sombra', alfa: 0.32, t: { x: b.x, y: 0.003, z: b.z, sx: 0.46 - y, sy: 1, sz: 0.46 - y } });
   }
   function moveis(lista) {
@@ -215,6 +242,16 @@
     [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => lista.push({ malha: m.caixa, cor: COR.madeira,
       t: { x: MESA.x + a * (MESA.w / 2 - 0.12), y: (MESA.h - 0.08) / 2, z: MESA.z + b * (MESA.d / 2 - 0.12), sx: 0.08, sy: MESA.h - 0.08, sz: 0.08 } }));
     lista.push({ malha: m.plano, tipo: 'sombra', alfa: 0.22, t: { x: MESA.x, y: 0.003, z: MESA.z, sx: MESA.w * 0.62, sy: 1, sz: MESA.d * 0.66 } });
+    // a mesa do bazar: tampo azul-piscina (brilha quando dá para abrir), pés e alguns itens de mostruário em cima
+    const rb = S.alvoBazar ? 0.22 + Math.sin(S.t * 5) * 0.1 : 0;
+    lista.push({ malha: m.caixa, cor: COR.bazar, realce: rb, t: { x: BAZAR.x, y: BAZAR.h - 0.04, z: BAZAR.z, sx: BAZAR.w, sy: 0.08, sz: BAZAR.d } });
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => lista.push({ malha: m.caixa, cor: COR.madeira,
+      t: { x: BAZAR.x + a * (BAZAR.w / 2 - 0.08), y: (BAZAR.h - 0.08) / 2, z: BAZAR.z + b * (BAZAR.d / 2 - 0.08), sx: 0.07, sy: BAZAR.h - 0.08, sz: 0.07 } }));
+    lista.push({ malha: m.plano, tipo: 'sombra', alfa: 0.2, t: { x: BAZAR.x, y: 0.003, z: BAZAR.z, sx: BAZAR.w * 0.6, sy: 1, sz: BAZAR.d * 0.7 } });
+    [['cowboy', -0.55], ['bruxo', 0], ['tv', 0.55]].forEach(([id, dx]) => {
+      const it = R.Itens3D.ITENS[id], r0 = id === 'tv' ? 0.12 : 0.16;
+      R.Itens3D.desenhar(lista, S.r, id, it.cor, { x: BAZAR.x + dx, y: BAZAR.h + (id === 'tv' ? 0.12 : -0.5 * r0), z: BAZAR.z, r: r0, ry: 0.4, rx: 0 });
+    });
     // as cadeiras: assento, encosto (atrás, do lado de fora da mesa) e pés; a que dá para sentar brilha
     CADEIRAS.forEach((c, i) => {
       const realce = i === S.alvoCadeira ? 0.22 + Math.sin(S.t * 5) * 0.1 : 0;
@@ -230,13 +267,15 @@
     const lista = [];
     moveis(lista);
     const eu = S.eu, meu = O().meu();
-    boneco(lista, { x: eu.x, z: eu.z, vx: eu.vx, vz: eu.vz, f: eu.f, fase: eu.fase, sentado: eu.sentado, cor: meu.cor });
+    boneco(lista, { x: eu.x, z: eu.z, vx: eu.vx, vz: eu.vz, f: eu.f, fase: eu.fase, sentado: eu.sentado, cor: meu.cor, visual: meu.visual });
     O().outros.forEach((o) => {
-      if (o.sentado) { const c = CADEIRAS[o.sentado.cadeira]; boneco(lista, { x: c.x, z: c.z, f: c.ry, fase: 0, sentado: o.sentado.cadeira, cor: o.cor }); }
-      else boneco(lista, { x: o.sx, z: o.sz, vx: o.vx, vz: o.vz, f: o.sf, fase: o.fase, sentado: null, cor: o.cor });
+      if (o.sentado) { const c = CADEIRAS[o.sentado.cadeira]; boneco(lista, { x: c.x, z: c.z, f: c.ry, fase: 0, sentado: o.sentado.cadeira, cor: o.cor, visual: o.visual }); }
+      else boneco(lista, { x: o.sx, z: o.sz, vx: o.vx, vz: o.vz, f: o.sf, fase: o.fase, sentado: null, cor: o.cor, visual: o.visual });
     });
-    const alvo = [S.cam.x, 0.4, S.cam.z];
-    S.r.desenhar(lista, { olho: [alvo[0], alvo[1] + 7.4, alvo[2] + 6.6], alvo, fov: 42 });
+    // a câmera de cima; no editor do bazar, perto do boneco (ele fica à esquerda, o painel à direita)
+    const z = S.zoom * S.zoom * (3 - 2 * S.zoom);
+    const alvo = [R.lerp(S.cam.x, eu.x + 0.5, z), R.lerp(0.4, 0.75, z), R.lerp(S.cam.z, eu.z, z)];
+    S.r.desenhar(lista, { olho: [alvo[0], alvo[1] + R.lerp(7.4, 1.1, z), alvo[2] + R.lerp(6.6, 3.2, z)], alvo, fov: 42 });
   }
 
   let antes = 0;
@@ -270,6 +309,24 @@
   S.iniciar = function () {
     O().on('sync', conferirMesa);
   };
+
+  /* o outro jogador debaixo de um ponto da tela (pixels CSS do canvas), ou null */
+  S.jogadorEm = function (px, py) {
+    if (!S.visivel || !S.r || S.foco) return null;
+    let melhor = null, dm = Infinity;
+    O().outros.forEach((o) => {
+      const pos = o.sentado ? CADEIRAS[o.sentado.cadeira] : { x: o.sx, z: o.sz };
+      if (pos.x == null) return;
+      const base = S.r.projetar([pos.x, o.sentado ? ASSENTO : 0, pos.z]), topo = S.r.projetar([pos.x, (o.sentado ? ASSENTO : 0) + 1.1, pos.z]);
+      if (!base || !topo) return;
+      const raio = Math.max(18, Math.abs(base[1] - topo[1]) * 0.45), cx = (base[0] + topo[0]) / 2, cy = (base[1] + topo[1]) / 2;
+      const d = Math.hypot(px - cx, (py - cy) * 0.75);
+      if (d < raio * 1.2 && d < dm) { dm = d; melhor = o; }
+    });
+    return melhor;
+  };
+  /* editor do bazar aberto (true) ou fechado: a câmera chega perto e o boneco vira para ela */
+  S.focarBazar = function (v) { S.foco = v ? 'bazar' : null; if (v && S.eu) { S.eu.vx = S.eu.vz = 0; } };
 
   S.CADEIRAS = CADEIRAS; S.MESA = MESA;
   R.Saguao = S;

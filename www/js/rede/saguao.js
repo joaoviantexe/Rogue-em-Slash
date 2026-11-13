@@ -1,8 +1,8 @@
 /* Rogue em' Slash — Sala online pelo Supabase Realtime (como o lobby do RL20: js/rede/saguao.js): quem está na sala
    (presença), por onde anda (broadcast) e quem está na mesa de RPG. Não há servidor de jogo: cada aparelho conta o seu
    estado e o Supabase repassa para os outros. Funciona com ou sem conta (a chave publicável basta).
-   - Presença: { id, conta, nome, cor, x, z, f, v (versão), mesa (sou o anfitrião: { codigo, desde, jogando }),
-     sentado ({ cadeira, desde }), t }. Muda pouco: entrou, parou de andar, sentou, levantou, abriu a sala.
+   - Presença: { id, conta, nome, cor, visual (cor do corpo e itens do bazar), x, z, f, v (versão), mesa (sou o
+     anfitrião: { codigo, desde, jogando }), sentado ({ cadeira, desde }), t }. Muda pouco: entrou, parou de andar, sentou, levantou, abriu a sala.
    - Movimento ('mov'): posição e velocidade quando começa a andar, muda de direção ou para (e a cada 0,8 s andando);
      os outros seguem essa velocidade até a próxima.
    Sem o Supabase configurado, a sala funciona só neste aparelho. */
@@ -26,7 +26,8 @@
   O.meu = function () {
     if (!O.eu) {
       const conta = R.Contas.usuario ? R.Contas.usuario.id : '';
-      O.eu = { id: ID_ABA, conta, nome: R.Contas.nome() || 'Convidado', cor: corDe(conta || ID_ABA), x: 0, z: 2, f: Math.PI, v: R.VERSAO, mesa: null, sentado: null, t: 0 };
+      const cor = corDe(conta || ID_ABA);
+      O.eu = { id: ID_ABA, conta, nome: R.Contas.nome() || 'Convidado', cor, visual: R.Social.meuVisual(cor), x: 0, z: 2, f: Math.PI, v: R.VERSAO, mesa: null, sentado: null, t: 0 };
     }
     return O.eu;
   };
@@ -34,7 +35,8 @@
   O.contaMudou = function () {
     if (!O.eu) return;
     const conta = R.Contas.usuario ? R.Contas.usuario.id : '';
-    Object.assign(O.eu, { conta, nome: R.Contas.nome() || 'Convidado', cor: corDe(conta || ID_ABA) });
+    const cor = corDe(conta || ID_ABA);
+    Object.assign(O.eu, { conta, nome: R.Contas.nome() || 'Convidado', cor, visual: R.Social.meuVisual(cor) });
     track(true);
   };
 
@@ -61,8 +63,9 @@
   };
   O.desligar = function () {
     clearTimeout(timerTrack);
-    if (O.canal) try { R.Contas.cliente.removeChannel(O.canal); } catch (e) { /* ok */ }
-    O.canal = null; O.conectado = false;
+    const canal = O.canal;
+    O.canal = null; O.conectado = false;   // (antes de remover: remover avisa "fechado", e esse aviso não pode desligar de novo)
+    if (canal) try { R.Contas.cliente.removeChannel(canal); } catch (e) { /* ok */ }
     O.outros.clear();
     O.emit('sync');
   };
@@ -93,7 +96,8 @@
   function saneado(p) {
     const m = p.mesa && typeof p.mesa === 'object' ? p.mesa : null, s = p.sentado && typeof p.sentado === 'object' ? p.sentado : null;
     return {
-      id: txt(p.id, 40), conta: txt(p.conta, 40), nome: txt(p.nome, 18) || 'Jogador', cor: /^#[0-9a-f]{6}$/i.test(p.cor) ? p.cor : CORES[0],
+      id: txt(p.id, 40), conta: /^[0-9a-f-]{36}$/i.test(p.conta) ? p.conta : '', nome: txt(p.nome, 18) || 'Jogador', cor: /^#[0-9a-f]{6}$/i.test(p.cor) ? p.cor : CORES[0],
+      visual: R.Social.visualValido(p.visual, /^#[0-9a-f]{6}$/i.test(p.cor) ? p.cor : CORES[0]),
       x: num(p.x, -50, 50, 0), z: num(p.z, -50, 50, 0), f: num(p.f, -10, 10, 0), v: txt(p.v, 10), t: num(p.t, 0, 1e15, 0),
       mesa: m ? { codigo: /^[A-Z0-9]{4}$/.test(m.codigo) ? m.codigo : null, desde: num(m.desde, 0, 1e15, 0), jogando: !!m.jogando } : null,
       sentado: s && isFinite(+s.cadeira) ? { cadeira: R.clamp(s.cadeira | 0, 0, 3), desde: num(s.desde, 0, 1e15, 0) } : null,
@@ -109,7 +113,7 @@
       const o = O.outros.get(s.id);
       if (!o) { O.outros.set(s.id, Object.assign(s, { vx: 0, vz: 0, recebido: performance.now() })); continue; }
       if (s.t >= o.t) Object.assign(o, s, { vx: 0, vz: 0, recebido: performance.now() });   // (a presença pode chegar depois de um movimento mais novo)
-      else Object.assign(o, { nome: s.nome, cor: s.cor, v: s.v, mesa: s.mesa, sentado: s.sentado });
+      else Object.assign(o, { nome: s.nome, cor: s.cor, visual: s.visual, conta: s.conta, v: s.v, mesa: s.mesa, sentado: s.sentado });
     }
     for (const id of [...O.outros.keys()]) if (!vistos.has(id)) O.outros.delete(id);
     O.emit('sync');

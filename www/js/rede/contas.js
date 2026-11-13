@@ -102,8 +102,11 @@
     C.usuario = usuario;
     const reserva = { id: usuario.id, nome: (usuario.user_metadata && usuario.user_metadata.nome) || String(usuario.email || 'Jogador').split('@')[0] };
     try {
-      const r = await C.cliente.from('perfis').select('id, nome').eq('id', usuario.id).maybeSingle();
-      if (r.error) console.warn('Contas: perfil', traduzir(r.error));
+      let r = await C.cliente.from('perfis').select('id, nome, visual').eq('id', usuario.id).maybeSingle();
+      if (r.error) {   // banco ainda sem a coluna do visual (falta rodar o supabase/esquema.sql de novo)
+        console.warn('Contas: perfil', traduzir(r.error));
+        r = await C.cliente.from('perfis').select('id, nome').eq('id', usuario.id).maybeSingle();
+      }
       C.perfil = r.data || reserva;
     } catch (e) { C.perfil = reserva; }
     C.emit('mudou');

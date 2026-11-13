@@ -191,6 +191,7 @@
       gl.clearColor(r.fundo[0], r.fundo[1], r.fundo[2], 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       const VP = mul(perspectiva((cam.fov || 40) * Math.PI / 180, r.w / r.h, 0.1, 100), olhar(cam.olho, cam.alvo));
+      r.VP = VP;
       gl.uniformMatrix4fv(U.uVP, false, VP);
       gl.uniform3fv(U.uCam, cam.olho);
       gl.uniform3fv(U.uLuz, cam.luz || [0.45, 1.0, 0.55]);
@@ -214,6 +215,15 @@
       gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -1);
       pecas.filter((p) => p.tipo === 'sombra').forEach(desenharPeca);
       gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthMask(true); gl.disable(gl.BLEND);
+    };
+    /* onde um ponto do mundo aparece no canvas (pixels CSS), pela câmera do último desenho; null se estiver atrás */
+    r.projetar = function (p) {
+      const M = r.VP;
+      if (!M) return null;
+      const x = M[0] * p[0] + M[4] * p[1] + M[8] * p[2] + M[12], y = M[1] * p[0] + M[5] * p[1] + M[9] * p[2] + M[13];
+      const w = M[3] * p[0] + M[7] * p[1] + M[11] * p[2] + M[15];
+      if (w <= 0) return null;
+      return [((x / w + 1) / 2) * canvas.clientWidth, ((1 - y / w) / 2) * canvas.clientHeight];
     };
     return r;
   }
