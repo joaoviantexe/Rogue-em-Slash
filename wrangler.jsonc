@@ -1,0 +1,11 @@
+// Rogue em' Slash — publicação na Cloudflare (Workers com arquivos estáticos): serve a pasta www/ e mais nada.
+// O nome tem que ser igual ao do Worker no painel (Workers & Pages → rogue-em-slash).
+{
+  "name": "rogue-em-slash",
+  "compatibility_date": "2026-10-01",
+  // liga o endereço https://rogue-em-slash.<sua-conta>.workers.dev a cada publicação
+  "workers_dev": true,
+  "assets": {
+    "directory": "./www"
+  }
+}

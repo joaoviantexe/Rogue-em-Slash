@@ -71,7 +71,7 @@ no cabo (ou num emulador). Depois de mudar o jogo, rode `npm run android:sync` (
 
 ## Hospedar e configurar (versão de navegador)
 O jogo é um **site estático**: é só publicar a pasta `www/`. As contas ficam num projeto do **Supabase** (gratuito).
-A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare Pages ou Vercel), **3)** voltar no Supabase com o endereço do site.
+A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare ou Vercel), **3)** voltar no Supabase com o endereço do site.
 
 ### 1. Supabase (contas)
 1. Crie uma conta em [supabase.com](https://supabase.com) e um **projeto novo** (plano gratuito). Na região, escolha
@@ -99,21 +99,19 @@ testes. Com mais jogadores, configure um SMTP próprio (ex.: Resend, Brevo, Amaz
 SMTP Settings**. No plano gratuito, o Supabase **pausa projetos parados** por um tempo; se as contas pararem, reative o
 projeto no painel.
 
-### 2a. Cloudflare Pages (recomendado)
-O plano gratuito permite uso comercial e não tem limite de banda para sites estáticos.
-1. Em [dash.cloudflare.com](https://dash.cloudflare.com), abra **Workers & Pages → Create application → Pages →
-   Import an existing Git repository** (o nome dos botões muda de vez em quando; o que importa é criar um projeto do
-   **Pages** ligado ao **GitHub**).
-2. Autorize o GitHub e escolha o repositório `Rogue-em-Slash`.
-3. Configure:
-   - **Production branch**: a branch principal do repositório (veja "Branch de produção" abaixo).
-   - **Framework preset**: `None`.
-   - **Build command**: deixe **vazio**.
-   - **Build output directory**: `www`
-   - Em **Environment variables**, adicione `SKIP_DEPENDENCY_INSTALL` = `1` (sem isso a Cloudflare instala o Electron e o
-     Capacitor à toa, a cada publicação; funciona igual, só demora mais).
-4. **Save and Deploy**. O endereço fica `https://NOME-DO-PROJETO.pages.dev`.
-5. Cada push na branch de produção publica de novo sozinho; as outras branches ganham um endereço de prévia.
+### 2a. Cloudflare (recomendado)
+O plano gratuito permite uso comercial e não tem limite de banda para arquivos estáticos. Hoje o painel da Cloudflare
+cria um **Worker com arquivos estáticos** (e não mais um projeto do Pages); o repositório já tem o `wrangler.jsonc`, que
+diz para ele servir só a pasta `www/` e ligar o endereço `workers.dev`.
+1. Em [dash.cloudflare.com](https://dash.cloudflare.com), abra **Workers & Pages → Create application → Import a
+   repository**, autorize o GitHub e escolha o repositório `Rogue-em-Slash`.
+2. **Project name**: `rogue-em-slash` (tem que ser igual ao `name` do `wrangler.jsonc`). **Build command**: vazio.
+   **Deploy command**: `npx wrangler deploy` (o padrão). **Root directory**: `/`.
+3. **Deploy**. O endereço fica `https://rogue-em-slash.SUA-CONTA.workers.dev` (aparece em **Settings → Domains &
+   Routes**; se estiver "Disabled", é só ligar o `workers.dev` ali — o `wrangler.jsonc` também liga a cada publicação).
+4. Cada push na branch de produção (**Settings → Build → Branch control**) publica de novo sozinho.
+5. Para um domínio próprio (ex.: `rogueemslash.com.br`): **Settings → Domains & Routes → Add → Custom domain** (o
+   domínio precisa estar na Cloudflare).
 
 ### 2b. Vercel (alternativa)
 O plano gratuito (Hobby) é só para uso **pessoal e não comercial**; para vender o jogo, seria o plano pago.
@@ -126,7 +124,7 @@ O plano gratuito (Hobby) é só para uso **pessoal e não comercial**; para vend
 
 ### 3. Voltar no Supabase com o endereço do site
 Em **Authentication → URL Configuration**:
-- **Site URL**: o endereço do jogo (ex.: `https://rogue-em-slash.pages.dev`).
+- **Site URL**: o endereço do jogo (ex.: `https://rogue-em-slash.SUA-CONTA.workers.dev`).
 - **Redirect URLs**: o mesmo endereço e, para testar no seu computador, `http://localhost:8080`.
 
 É para onde voltam os links de confirmação de e-mail e de senha nova. Pronto: abra o site, crie uma conta e jogue.
@@ -180,6 +178,7 @@ supabase/esquema.sql banco das contas (para colar no SQL Editor do Supabase)
 pc/main.js           janela do PC (Electron)
 android/             projeto Android (Capacitor)
 ferramentas/         servidor local (npm start)
+wrangler.jsonc       publicação na Cloudflare (serve a pasta www/)
 ```
 Sem módulos nem etapa de build (como o RL20): os arquivos usam o espaço global `RES` e abrem direto do disco.
 

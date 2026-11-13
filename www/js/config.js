@@ -6,8 +6,8 @@ window.RES.CONFIG = {
      antigos, a "anon / public"). Quem protege os dados são as regras do supabase/esquema.sql.
      Vazio: as contas ficam desligadas e o jogo abre sem login (só para testar). */
   supabase: {
-    url: '',
-    chave: '',
+    url: 'https://qqqlwwankdhamkghrhlq.supabase.co',
+    chave: 'sb_publishable_PSCSL46erpWIr2WEWJyzYQ_M7n-YyyE',
   },
   /* Salas online (WebRTC, biblioteca PeerJS: a conexão é direta entre os aparelhos).
      servidor: null usa o servidor público e gratuito do PeerJS, que só apresenta os aparelhos um ao outro.
