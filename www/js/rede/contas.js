@@ -1,6 +1,7 @@
-/* Rogue em' Slash — Contas (login e senha) pelo Supabase, como no RL20 (js/rede/contas.js): login obrigatório para
-   jogar. Só liga quando R.CONFIG.supabase tem a URL e a chave publicável do projeto (www/js/config.js); sem isso, o jogo
-   abre sem conta (só para testar). O banco (tabela de perfis e as regras de quem vê o quê) está em supabase/esquema.sql. */
+/* Rogue em' Slash — Contas (login e senha) pelo Supabase, como no RL20 (js/rede/contas.js). A conta é OPCIONAL (dá
+   para jogar sem) e não tem confirmação de e-mail: criou, já entra (no Supabase, "Confirm email" fica desligado).
+   Só liga quando R.CONFIG.supabase tem a URL e a chave publicável do projeto (www/js/config.js).
+   O banco (tabela de perfis e as regras de quem vê o quê) está em supabase/esquema.sql. */
 (function (R) {
   'use strict';
 
@@ -13,8 +14,6 @@
   const cfg = () => (R.CONFIG && R.CONFIG.supabase) || {};
   C.ativo = () => !!(cfg().url && cfg().chave && window.supabase && window.supabase.createClient);
   C.logado = () => !!C.usuario;
-  /* login obrigatório: com as contas ligadas, só joga quem está conectado */
-  C.precisaEntrar = () => C.ativo() && !C.logado();
   C.nome = () => (C.perfil ? C.perfil.nome : '');
   /* quem eu sou, para mandar ao anfitrião de uma sala online */
   C.resumo = () => (C.usuario ? { id: C.usuario.id, nome: C.nome() } : null);
@@ -67,19 +66,21 @@
     if (error) throw new Error(traduzir(error));
     if (data && data.user) await aoEntrar(data.user);
   };
-  /* Devolve true se precisa confirmar o e-mail antes de entrar. */
+  /* Cria a conta e já entra (sem confirmação de e-mail). */
   C.criarConta = async function (nome, email, senha) {
     nome = nome.trim();
     if (!/^[\p{L}\p{N} _.-]{2,18}$/u.test(nome)) throw new Error('O nome precisa ter de 2 a 18 letras, números, espaço, ponto, hífen ou _.');
     const livre = await C.cliente.rpc('nome_disponivel', { n: nome });
     if (livre.error) throw new Error(traduzir(livre.error));
     if (!livre.data) throw new Error('Esse nome de jogador já está em uso.');
-    const { data, error } = await C.cliente.auth.signUp({
-      email: email.trim(), password: senha, options: { data: { nome }, emailRedirectTo: urlDoSite() },
-    });
+    const { data, error } = await C.cliente.auth.signUp({ email: email.trim(), password: senha, options: { data: { nome } } });
     if (error) throw new Error(traduzir(error));
-    if (data && data.session && data.user) await aoEntrar(data.user);
-    return !data.session;
+    if (data && data.session && data.user) { await aoEntrar(data.user); return; }
+    // sem sessão: o e-mail já tinha conta, ou o projeto ainda pede confirmação de e-mail
+    try { await C.entrar(email, senha); } catch (e) {
+      if (/confirme seu e-mail/i.test(e.message)) throw new Error('O servidor de contas ainda pede confirmação de e-mail (no Supabase: Authentication → Sign In / Providers → Email → desligue "Confirm email").');
+      throw new Error('Não foi possível criar a conta: este e-mail já pode estar em uso. Tente entrar ou use "Esqueci minha senha".');
+    }
   };
   C.esqueciSenha = async function (email) {
     const { error } = await C.cliente.auth.resetPasswordForEmail(email.trim(), { redirectTo: urlDoSite() });

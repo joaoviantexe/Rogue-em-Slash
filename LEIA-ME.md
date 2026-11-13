@@ -11,7 +11,8 @@ desenvolvido por partes.
   Também na diagonal. Anda com a animação de passo e fica parado respirando quando solta o controle.
 - **Até 4 jogadores**, **locais**, **online** ou **híbrido** (alguns no mesmo aparelho e outros pela internet). Cada
   jogador tem uma cor (vermelho, azul, verde e amarelo) e o nome em cima da cabeça.
-- **Contas** (Supabase): login obrigatório para jogar, criar conta, esqueci minha senha.
+- **Contas** (Supabase), **opcionais**: o jogo abre direto no menu e dá para jogar sem conta; quem quiser cria uma
+  (nome de jogador, e-mail e senha) e já entra, **sem confirmação de e-mail**. Também tem "Esqueci minha senha".
 - As telas (login e menu) são **HTML puro, sem estilo** por enquanto: a cara delas vai ser decidida depois.
 
 ## Controles
@@ -47,7 +48,7 @@ meio deles e ninguém sai da tela.
 - Dois cliques em `www/index.html` (não precisa de servidor), **ou**
 - `npm start` e abra `http://localhost:8080`. O terminal mostra também o endereço para abrir **no celular** (na mesma rede Wi-Fi).
 
-Sem o Supabase configurado (`www/js/config.js` vazio), as contas ficam desligadas e o jogo abre sem login, só para testar.
+Sem o Supabase configurado (`www/js/config.js` vazio), as contas ficam desligadas (o resto do jogo funciona igual).
 
 ### PC (Electron)
 ```bash
@@ -90,14 +91,14 @@ A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare ou Vercel), **3)** volta
    ```
    Essa chave é **pública por natureza** (vai junto com o site); quem protege os dados são as regras do passo 2.
    **Nunca** coloque no jogo a chave secreta (`sb_secret_…` / `service_role`).
-4. Em **Authentication → Sign In / Providers → Email**, escolha se a conta precisa **confirmar o e-mail** antes de entrar
-   ("Confirm email"). Para os primeiros testes, dá para desligar; para jogadores de verdade, deixe ligado.
+4. Em **Authentication → Sign In / Providers → Email**, **desligue "Confirm email"** e salve. O jogo não tem confirmação
+   de e-mail: criou a conta, já entra. (Com ele ligado, o cadastro avisa que o servidor ainda pede confirmação.)
 5. Envie (commit e push) o `config.js` com a URL e a chave.
 
-O e-mail padrão do Supabase (confirmação de conta, senha nova) serve **só para testes**: ele só entrega para os
-e-mails da **equipe do projeto** (Organization → Team no Supabase) e no máximo **2 e-mails por hora**. Para outras
-pessoas criarem conta: ou desligue o "Confirm email" (passo 4) enquanto testam, ou configure um SMTP próprio (ex.:
-Resend, Brevo, Amazon SES; pede um domínio seu) em **Authentication → Emails → SMTP Settings**. O texto dos e-mails
+O único e-mail que o jogo manda é o de **"Esqueci minha senha"**. O envio padrão do Supabase serve **só para testes**:
+ele só entrega para os e-mails da **equipe do projeto** (Organization → Team no Supabase) e no máximo **2 e-mails por
+hora**. Para todo mundo poder recuperar a senha, configure um SMTP próprio (ex.: Resend, Brevo, Amazon SES; pede um
+domínio seu) em **Authentication → Emails → SMTP Settings**. O texto dos e-mails
 (em inglês por padrão) muda em **Authentication → Emails → Templates**. No plano gratuito, o Supabase **pausa
 projetos parados** por um tempo; se as contas pararem, reative o projeto no painel.
 
@@ -129,7 +130,7 @@ Em **Authentication → URL Configuration**:
 - **Site URL**: o endereço do jogo (ex.: `https://rogue-em-slash.SUA-CONTA.workers.dev`).
 - **Redirect URLs**: o mesmo endereço e, para testar no seu computador, `http://localhost:8080`.
 
-É para onde voltam os links de confirmação de e-mail e de senha nova. Pronto: abra o site, crie uma conta e jogue.
+É para onde volta o link de senha nova ("Esqueci minha senha"). Pronto: abra o site e jogue (com ou sem conta).
 
 ### Branch de produção
 Hoje o repositório só tem a branch `claude/kind-feynman-gl7mpm`. O mais simples é criar a `main` a partir dela (no

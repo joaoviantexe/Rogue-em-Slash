@@ -1,6 +1,6 @@
-/* Rogue em' Slash — Telas (HTML puro, sem estilo: a cara delas fica para depois). Como no RL20, o login é obrigatório:
-   com as contas ligadas, quem não está conectado só vê a tela de entrar.
-   - entrar / criar / esqueci / novaSenha / aviso: a conta (R.Contas).
+/* Rogue em' Slash — Telas (HTML puro, sem estilo: a cara delas fica para depois). A conta é opcional: o jogo abre
+   direto no menu (jogando sem conta), e dá para entrar ou criar uma conta por ele. Sem confirmação de e-mail.
+   - entrar / criar / esqueci / novaSenha: a conta (R.Contas).
    - menu: os jogadores deste aparelho (até 4, cada um com o seu controle), a sala online (criar ou entrar com o
      código) e o botão de jogar. No jogo, Esc, Start ou o botão "Menu" voltam para cá. */
 (function (R) {
@@ -25,7 +25,8 @@
         <p><button type="submit">Entrar</button></p>
       </form>
       ${status()}
-      <p>${ir('criar', 'Criar conta')} ${ir('esqueci', 'Esqueci minha senha')}</p>`,
+      <p>${ir('criar', 'Criar conta')} ${ir('esqueci', 'Esqueci minha senha')}</p>
+      <p>${ir('menu', 'Voltar (jogar sem conta)')}</p>`,
     criar: () => `<h1>Criar conta</h1>
       <form data-form="criar">
         ${campo('Nome de jogador', 'nome', 'text', 'maxlength="18" autocomplete="nickname" required')}
@@ -35,7 +36,7 @@
         <p><button type="submit">Criar conta</button></p>
       </form>
       ${status()}
-      <p>${ir('entrar', 'Voltar')}</p>`,
+      <p>${ir('entrar', 'Já tenho conta')} ${ir('menu', 'Voltar (jogar sem conta)')}</p>`,
     esqueci: () => `<h1>Esqueci minha senha</h1>
       <form data-form="esqueci">
         ${campo('E-mail', 'email', 'email', `autocomplete="email" required value="${esc(emailPadrao())}"`)}
@@ -51,7 +52,6 @@
         <p><button type="submit">Salvar senha</button></p>
       </form>
       ${status()}`,
-    aviso: () => `<h1>Confirme seu e-mail</h1><p>${esc(T.msg)}</p><p>${ir('entrar', 'Ir para Entrar')}</p>`,
     menu: menu,
   };
 
@@ -67,9 +67,9 @@
   }
   function menu() {
     const C = R.Contas, N = R.Rede, J = R.Jogo;
-    const conta = C.ativo()
-      ? `<p>Conectado como <strong>${esc(C.nome())}</strong>. <button type="button" data-acao="sairConta">Sair da conta</button></p>`
-      : '<p>Contas desligadas (falta configurar o Supabase em www/js/config.js): jogando sem conta, só para teste.</p>';
+    const conta = !C.ativo() ? '<p>Contas desligadas (falta configurar o Supabase em www/js/config.js).</p>'
+      : C.logado() ? `<p>Conectado como <strong>${esc(C.nome())}</strong>. <button type="button" data-acao="sairConta">Sair da conta</button></p>`
+        : `<p>Jogando sem conta. ${ir('entrar', 'Entrar')} ${ir('criar', 'Criar conta')}</p>`;
     const naSala = new Map(N.sala.filter((j) => j.dono === N.meuDono()).map((j) => [j.i, j.slot]));
     const nomes = new Map(J.lista().map((j) => [j.dono + ':' + j.i, j.nome]));
     const locais = J.locais.map((l) => {
@@ -149,10 +149,9 @@
         R.Contas.lembrarEmail(d.email);
         T.mostrar('menu');
       } else if (tela === 'criar') {
-        const confirmar = await R.Contas.criarConta(d.nome, d.email, d.senha);
+        await R.Contas.criarConta(d.nome, d.email, d.senha);   // (criou: já entra)
         R.Contas.lembrarEmail(d.email);
-        if (confirmar) T.mostrar('aviso', 'Conta criada! Enviamos um link de confirmação para ' + d.email.trim() + '. Abra o link (ele volta para o jogo já conectado) ou confirme e entre aqui.');
-        else T.mostrar('menu');
+        T.mostrar('menu');
       } else if (tela === 'esqueci') {
         await R.Contas.esqueciSenha(d.email);
         T.aviso('Se existir uma conta com esse e-mail, chegou um link para criar uma senha nova.');
@@ -190,9 +189,8 @@
     R.Rede.on('mudou', () => { R.Jogo.sincronizar(); if (T.tela === 'menu') T.render(); });
     R.Contas.on('mudou', () => {
       R.Jogo.sincronizar(); R.Rede.nomeMudou();
-      if (R.Contas.precisaEntrar()) { R.Rede.sair(); R.Jogo.mostrar(false); T.mostrar('entrar'); }
-      else if (T.tela === 'menu') T.render();
-      else if (T.tela === 'entrar' || T.tela === 'criar' || T.tela === 'carregando') T.mostrar('menu');
+      if (T.tela === 'menu') T.render();
+      else if (T.tela === 'entrar' || T.tela === 'criar') T.mostrar('menu');
     });
     R.Contas.on('recuperarSenha', () => { R.Jogo.mostrar(false); T.mostrar('novaSenha'); });
   };
