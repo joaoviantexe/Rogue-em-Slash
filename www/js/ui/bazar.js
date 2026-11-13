@@ -1,6 +1,7 @@
-/* Rogue em' Slash — Editor do boneco da sala (a mesa do bazar): a cor do corpo (grátis) e os itens — chapéus, óculos e
-   capacetes —, cada um com a cor que o jogador quiser. Os itens custam moedas (preço na tabela itens_bazar do Supabase);
-   comprado uma vez, é dele. O capacete cobre a cabeça inteira: com ele não vai chapéu nem óculos.
+/* Rogue em' Slash — Editor do boneco da sala (a mesa do bazar): a cor do corpo (grátis) e os itens — camisas, chapéus,
+   óculos, máscaras, capacetes e asas —, cada um com a cor que o jogador quiser. Os itens custam moedas (preço na tabela
+   itens_bazar do Supabase); comprado uma vez, é dele. O capacete cobre a cabeça inteira: com ele não vai chapéu, óculos
+   nem máscara; a máscara e os óculos também não vão juntos (os dois ficam nos olhos).
    A câmera chega perto do boneco e ele muda na hora; ao fechar (Pronto, Esc ou B), o visual é salvo na conta (sem conta,
    só a cor do corpo, neste navegador) e os outros jogadores passam a ver. */
 (function (R) {
@@ -10,7 +11,7 @@
   let el = null;
   const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const S = () => R.Social;
-  const ABAS = [['corpo', 'Corpo'], ['chapeu', 'Chapéus'], ['oculos', 'Óculos'], ['capacete', 'Capacetes']];
+  const ABAS = [['corpo', 'Corpo'], ['camisa', 'Camisas'], ['chapeu', 'Chapéus'], ['oculos', 'Óculos'], ['mascara', 'Máscaras'], ['capacete', 'Capacetes'], ['asas', 'Asas']];
 
   /* os itens de um encaixe: os do banco (com preço) ou, sem ele, os do jogo */
   function itensDe(tipo) {
@@ -41,7 +42,7 @@
           : `<p>${R.Contas.ativo() ? 'Entre numa conta para comprar itens.' : 'Os itens precisam das contas (Supabase) configuradas.'}</p>`;
       }
       if (atual) corpo += `<label>Cor do item <input type="color" data-cor="${aba}" value="${esc(atual.cor)}"></label>`;
-      if (aba === 'capacete') corpo += '<p><small>O capacete cobre a cabeça: com ele não vai chapéu nem óculos.</small></p>';
+      if (aba === 'capacete') corpo += '<p><small>O capacete cobre a cabeça: com ele não vai chapéu, óculos nem máscara.</small></p>';
     }
     el.innerHTML = `<h2>Bazar</h2>
       ${S().comConta() ? '<p>Moedas: <b>' + S().moedas + '</b></p>' : ''}
@@ -57,7 +58,10 @@
     if (!id) { v[slot] = null; return; }
     const antes = v[slot] && v[slot].id === id ? v[slot].cor : null;
     v[slot] = { id, cor: antes || R.Itens3D.ITENS[id].cor };
-    if (slot === 'capacete') { v.chapeu = null; v.oculos = null; } else v.capacete = null;
+    if (slot === 'capacete') { v.chapeu = null; v.oculos = null; v.mascara = null; }
+    else if (slot === 'chapeu' || slot === 'oculos' || slot === 'mascara') v.capacete = null;
+    if (slot === 'mascara') v.oculos = null;   // a máscara e os óculos ficam no mesmo lugar (os olhos)
+    if (slot === 'oculos') v.mascara = null;
   }
 
   B.abrir = function () {

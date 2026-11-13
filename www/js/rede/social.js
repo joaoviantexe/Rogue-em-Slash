@@ -33,21 +33,23 @@
   }
 
   /* =====================================================================
-     VISUAL DO BONECO: { corpo: '#rrggbb', chapeu: { id, cor } | null, oculos: …, capacete: … }
+     VISUAL DO BONECO: { corpo: '#rrggbb', chapeu: { id, cor } | null, oculos, capacete, mascara, asas, camisa }
      ===================================================================== */
   const COR = /^#[0-9a-f]{6}$/i;
-  const SLOTS = ['chapeu', 'oculos', 'capacete'];
+  const SLOTS = ['chapeu', 'oculos', 'capacete', 'mascara', 'asas', 'camisa'];
   S.SLOTS = SLOTS;
   /* só o formato esperado (vem de outro aparelho ou do banco) */
   S.visualValido = function (v, corPadrao) {
-    const o = { corpo: corPadrao || '#1f8ff0', chapeu: null, oculos: null, capacete: null };
+    const o = { corpo: corPadrao || '#1f8ff0' };
+    SLOTS.forEach((s) => { o[s] = null; });
     if (!v || typeof v !== 'object') return o;
     if (COR.test(v.corpo)) o.corpo = v.corpo.toLowerCase();
     SLOTS.forEach((s) => {
       const it = v[s], def = it && R.Itens3D && R.Itens3D.ITENS[it.id];
       if (def && def.tipo === s) o[s] = { id: it.id, cor: COR.test(it.cor) ? it.cor.toLowerCase() : def.cor };
     });
-    if (o.capacete) { o.chapeu = null; o.oculos = null; }   // o capacete cobre a cabeça inteira
+    if (o.capacete) { o.chapeu = null; o.oculos = null; o.mascara = null; }   // o capacete cobre a cabeça inteira
+    if (o.mascara) o.oculos = null;   // a máscara e os óculos ficam no mesmo lugar (os olhos)
     return o;
   };
   const CHAVE_VISUAL = 'res.visual';
@@ -58,7 +60,7 @@
     let local = null;
     try { local = JSON.parse(localStorage.getItem(CHAVE_VISUAL)); } catch (e) { /* sem armazenamento */ }
     const v = S.visualValido(local, corPadrao);
-    if (!S.comConta()) { v.chapeu = v.oculos = v.capacete = null; }
+    if (!S.comConta()) SLOTS.forEach((s) => { v[s] = null; });
     return v;
   };
   S.salvarVisual = async function (v) {

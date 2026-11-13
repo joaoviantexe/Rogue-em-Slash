@@ -20,7 +20,7 @@ create table if not exists public.perfis (
   criado_em timestamptz not null default now()
 );
 create unique index if not exists perfis_nome_unico on public.perfis (lower(nome));
--- O visual do boneco da sala: { corpo, chapeu: { id, cor }, oculos: { id, cor }, capacete: { id, cor } }
+-- O visual do boneco da sala: { corpo, chapeu: { id, cor }, oculos, capacete, mascara, asas, camisa }
 alter table public.perfis add column if not exists visual jsonb;
 -- Último sinal do jogo aberto (a cada minuto): o nome de quem joga sem conta e sumiu fica livre (veja liberar_nome).
 alter table public.perfis add column if not exists visto_em timestamptz not null default now();
@@ -74,17 +74,22 @@ create table if not exists public.movimentos_moedas (
 create table if not exists public.itens_bazar (
   id text primary key,
   nome text not null,
-  tipo text not null check (tipo in ('chapeu', 'oculos', 'capacete')),
+  tipo text not null,
   preco integer not null default 10 check (preco >= 0),
   ativo boolean not null default true,
   ordem integer not null default 0
 );
+alter table public.itens_bazar drop constraint if exists itens_bazar_tipo_check;
+alter table public.itens_bazar add constraint itens_bazar_tipo_check check (tipo in ('chapeu', 'oculos', 'capacete', 'mascara', 'asas', 'camisa'));
 insert into public.itens_bazar (id, nome, tipo, ordem) values
   ('cowboy', 'Chapéu de Cowboy', 'chapeu', 1), ('bruxo', 'Chapéu de Bruxo', 'chapeu', 2), ('pirata', 'Chapéu de Pirata', 'chapeu', 3),
   ('cartola', 'Cartola', 'chapeu', 4), ('bone', 'Boné', 'chapeu', 5), ('fazendeiro', 'Chapéu de Fazendeiro', 'chapeu', 6),
   ('boina', 'Boina', 'chapeu', 7),
   ('oculos', 'Óculos', 'oculos', 1), ('oculos3d', 'Óculos 3D', 'oculos', 2), ('ski', 'Óculos de Ski', 'oculos', 3),
-  ('motoqueiro', 'Capacete de Motoqueiro', 'capacete', 1), ('tv', 'TV de Tubo', 'capacete', 2)
+  ('motoqueiro', 'Capacete de Motoqueiro', 'capacete', 1), ('tv', 'TV de Tubo', 'capacete', 2),
+  ('hoquei', 'Máscara de Hóquei', 'mascara', 1),
+  ('anjo', 'Asas de Anjo', 'asas', 1), ('borboleta', 'Asas de Borboleta', 'asas', 2), ('morcego', 'Asas de Morcego', 'asas', 3),
+  ('camiseta', 'Camiseta', 'camisa', 1)
 on conflict (id) do nothing;
 
 create table if not exists public.itens_comprados (
@@ -333,7 +338,7 @@ declare
 begin
   if eu is null then raise exception 'sem login'; end if;
   if v is null or jsonb_typeof(v) <> 'object' or length(v::text) > 1000 then raise exception 'visual inválido'; end if;
-  foreach s in array array['chapeu', 'oculos', 'capacete'] loop
+  foreach s in array array['chapeu', 'oculos', 'capacete', 'mascara', 'asas', 'camisa'] loop
     it := v -> s ->> 'id';
     if it is not null and not exists (select 1 from itens_bazar b where b.id = it and b.tipo = s
         and (b.preco = 0 or exists (select 1 from itens_comprados c where c.usuario = eu and c.item = it))) then

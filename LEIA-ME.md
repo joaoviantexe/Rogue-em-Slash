@@ -11,9 +11,11 @@ desenvolvido por partes.
   (vidro colorido e brilhante; a cor é fixa por conta). Os outros jogadores online aparecem andando na mesma sala.
 - **Mesa de RPG** com 4 cadeiras, que é como se joga junto (veja "Jogar junto" abaixo).
 - **Mesa do bazar**: o editor do boneco. A **cor do corpo é grátis**; os itens custam moedas e cada um tem a cor que o
-  jogador quiser: **chapéus** (Cowboy, Bruxo, Pirata, Cartola, Boné, Fazendeiro, Boina), **óculos** (Óculos, Óculos 3D,
-  Óculos de Ski) e **capacetes** (Motoqueiro, TV de Tubo; o capacete cobre a cabeça, então não vai junto com chapéu nem
-  óculos). A câmera chega perto do boneco e ele muda na hora; os outros jogadores veem o visual novo.
+  jogador quiser: **camisas** (Camiseta), **chapéus** (Cowboy, Bruxo, Pirata, Cartola, Boné, Fazendeiro, Boina),
+  **óculos** (Óculos, Óculos 3D, Óculos de Ski), **máscaras** (Máscara de Hóquei), **capacetes** (Motoqueiro, TV de
+  Tubo) e **asas** (Anjo, Borboleta, Morcego). O capacete cobre a cabeça, então não vai junto com chapéu, óculos nem
+  máscara; máscara e óculos também não vão juntos (os dois ficam nos olhos). A câmera chega perto do boneco e ele muda
+  na hora; os outros jogadores veem o visual novo.
 - **Moedas**: saldo na conta, gasto no bazar. Por enquanto só entram pelo painel do Supabase (veja "Moedas" abaixo).
 - **Chat da sala** (Enter) e **sussurros**; **clicar em outro jogador** abre o menu dele: **Sussurrar** e **Adicionar amigo**.
 - **Celular** (Esc): sobe do canto da tela, com os apps **Amigos** (amigos, pedidos e adicionar pelo nome) e
@@ -93,8 +95,8 @@ A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare ou Vercel), **3)** volta
    não usa).
 2. No projeto, abra **SQL Editor**, cole o arquivo `supabase/esquema.sql` inteiro e clique em **Run**. Ele cria as
    tabelas (perfis, amigos, chat, moedas, itens do bazar) e as regras de segurança: cada jogador só vê o que é dele, e
-   moedas só mudam pelas funções que conferem as regras. **Rode de novo a cada atualização do jogo** (a versão 0.4 precisa:
-   chat, amigos, moedas e bazar).
+   moedas só mudam pelas funções que conferem as regras. **Rode de novo a cada atualização do jogo** (rodar de novo não
+   apaga nada: só acrescenta o que falta, como os itens novos do bazar, sem mexer nos preços).
 3. Em **Project Settings → API Keys**, copie a **Project URL** e a chave **publicável** (`sb_publishable_…`; em projetos
    antigos, a **anon / public**) e cole em `www/js/config.js`:
    ```js

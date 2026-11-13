@@ -222,11 +222,14 @@
     lista.push({ malha: m.corpo, tipo: 'aero', cor, t: { x: b.x, y, z: b.z, ry: b.f, rx, sx: sxz, sy, sz: sxz } });
     const fx = Math.sin(b.f), fz = Math.cos(b.f), hy = CABECA.y * sy;
     const cab = { x: b.x + fx * Math.sin(rx) * hy, y: y + Math.cos(rx) * hy, z: b.z + fz * Math.sin(rx) * hy, r: CABECA.r, ry: b.f, rx };
-    // os itens do bazar: o capacete cobre a cabeça inteira; senão, o chapéu e os óculos
+    // os itens do bazar. Na cabeça: o capacete cobre ela inteira; senão, o chapéu, os óculos e a máscara.
+    // No corpo (presos à base dele, esticando e achatando com o passo): a camisa e as asas.
     let esconde = false;
-    ['capacete', 'chapeu', 'oculos'].forEach((s) => {
+    ['capacete', 'chapeu', 'oculos', 'mascara'].forEach((s) => {
       if (v[s] && !(s !== 'capacete' && v.capacete)) esconde = R.Itens3D.desenhar(lista, S.r, v[s].id, v[s].cor, cab) || esconde;
     });
+    const corpo = { x: b.x, y, z: b.z, r: 1, ry: b.f, rx, esc: [sxz, sy, sxz] };
+    ['camisa', 'asas'].forEach((s) => { if (v[s]) R.Itens3D.desenhar(lista, S.r, v[s].id, v[s].cor, corpo); });
     if (!esconde) lista.push({ malha: m.esfera, tipo: 'aero', cor, t: { x: cab.x, y: cab.y, z: cab.z, ry: b.f, sx: CABECA.r, sy: CABECA.r, sz: CABECA.r } });
     if (b.sentado == null) lista.push({ malha: m.plano, tipo: 'sombra', alfa: 0.32, t: { x: b.x, y: 0.003, z: b.z, sx: 0.46 - y, sy: 1, sz: 0.46 - y } });
   }
