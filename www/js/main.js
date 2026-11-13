@@ -12,6 +12,7 @@
     if (R.Saguao.sentado()) R.Saguao.levantar();
     R.Saguao.mostrar(false); R.Jogo.mostrar(false);
     R.SaguaoOnline.desligar();   // (quem está no login não aparece na sala)
+    R.Contas.sairConvidado();    // jogava sem conta: o nome fica livre
     R.Input.ativo = false;
     if (tela) R.Telas.mostrar(tela); else R.Telas.inicial();
   };

@@ -109,8 +109,10 @@ A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare ou Vercel), **3)** volta
    de e-mail: criou a conta, já entra. (Com ele ligado, o cadastro avisa que o servidor ainda pede confirmação.)
 5. Em **Authentication → Sign In / Providers**, ligue **"Allow anonymous sign-ins"** e salve. É o que deixa quem joga
    **sem conta** conversar: ele ganha um login anônimo com o nome que digitou (nome único, as mesmas regras do chat).
-   Sem isso, o convidado joga do mesmo jeito, só não manda mensagem. Os logins anônimos ficam em **Authentication →
-   Users** (marcados como anônimos); dá para apagar os antigos de tempos em tempos.
+   Sem isso, o convidado joga do mesmo jeito, só não manda mensagem. O nome do convidado fica reservado **só enquanto
+   ele joga**: ao sair (fechar a página, voltar para o login ou entrar numa conta) o login anônimo é apagado e o nome
+   fica livre na hora; se o jogo fechou sem avisar (sem bateria, sem internet), o nome fica livre quando ele está há
+   mais de 3 minutos sem dar sinal (o jogo dá um sinal por minuto). As mensagens dele continuam no chat.
 6. Envie (commit e push) o `config.js` com a URL e a chave.
 
 O único e-mail que o jogo manda é o de **"Esqueci minha senha"**. O envio padrão do Supabase serve **só para testes**:

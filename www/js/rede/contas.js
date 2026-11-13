@@ -2,7 +2,9 @@
    para jogar sem) e não tem confirmação de e-mail: criou, já entra (no Supabase, "Confirm email" fica desligado).
    Quem joga sem conta entra com o login anônimo do Supabase (com o nome que digitou): assim pode conversar, com as
    mesmas regras de quem tem conta (nome único, 1 mensagem por segundo). Sem o login anônimo ligado no projeto, o
-   convidado joga do mesmo jeito, só não manda mensagem.
+   convidado joga do mesmo jeito, só não manda mensagem. O nome dele fica reservado só enquanto joga: ao sair (fechar
+   o jogo, voltar para o login ou entrar numa conta) o login anônimo é apagado; e o jogo manda um sinal a cada minuto,
+   para o banco liberar o nome de quem fechou o jogo sem avisar (supabase/esquema.sql: liberar_nome).
    Só liga quando R.CONFIG.supabase tem a URL e a chave publicável do projeto (www/js/config.js).
    O banco (tabela de perfis e as regras de quem vê o quê) está em supabase/esquema.sql. */
 (function (R) {
@@ -61,6 +63,7 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'res.sessao' },
     });
     C.cliente.auth.onAuthStateChange((evento, sessao) => {
+      C.token = sessao ? sessao.access_token : null;
       // a biblioteca pede para não chamar o Supabase dentro deste aviso: adia um instante
       setTimeout(() => {
         if (evento === 'PASSWORD_RECOVERY') C.emit('recuperarSenha');
@@ -70,12 +73,13 @@
     });
     try {
       const { data } = await C.cliente.auth.getSession();
-      if (data && data.session) await aoEntrar(data.session.user);
+      if (data && data.session) { C.token = data.session.access_token; await aoEntrar(data.session.user); }
     } catch (e) { console.warn('Contas:', e); }
     C.pronto = true;
   };
 
   C.entrar = async function (email, senha) {
+    await C.sairConvidado();   // (o nome de convidado fica livre)
     const { data, error } = await C.cliente.auth.signInWithPassword({ email: email.trim(), password: senha });
     if (error) throw new Error(traduzir(error));
     if (data && data.user) await aoEntrar(data.user);
@@ -87,6 +91,7 @@
     const livre = await C.cliente.rpc('nome_disponivel', { n: nome });
     if (livre.error) throw new Error(traduzir(livre.error));
     if (!livre.data) throw new Error('Esse nome de jogador já está em uso.');
+    await C.sairConvidado();
     const { data, error } = await C.cliente.auth.signUp({ email: email.trim(), password: senha, options: { data: { nome } } });
     if (error) throw new Error(traduzir(error));
     if (data && data.session && data.user) { await aoEntrar(data.user); return; }
@@ -108,11 +113,22 @@
     try { await C.cliente.auth.signOut(); } catch (e) { console.warn('Contas:', e); }
     aoSair();
   };
+  /* Quem jogava sem conta saiu: apaga o login anônimo (o nome dele fica livre na hora) e esquece a sessão. */
+  C.sairConvidado = function () {
+    if (!C.ativo() || !C.anonimo()) return C.saindo || Promise.resolve();
+    C.saindo = (async () => {
+      try { await C.cliente.rpc('sair_convidado'); } catch (e) { /* (o banco libera o nome sozinho em 3 minutos) */ }
+      try { await C.cliente.auth.signOut({ scope: 'local' }); } catch (e) { /* ok */ }
+      aoSair();
+    })();
+    return C.saindo.finally(() => { C.saindo = null; });
+  };
   /* "Jogar sem conta": guarda o nome e entra com o login anônimo (ou reaproveita o de antes, trocando o nome) */
   C.entrarComoConvidado = async function (nome) {
     C.definirConvidado(nome);
     nome = C.convidado;
     if (!C.ativo()) return;
+    if (C.saindo) await C.saindo;
     if (C.logado()) await C.sair();
     if (C.anonimo()) {
       if (C.perfil && C.perfil.nome === nome) return;
@@ -143,20 +159,48 @@
     C.usuario = usuario;
     const reserva = { id: usuario.id, nome: (usuario.user_metadata && usuario.user_metadata.nome) || String(usuario.email || 'Jogador').split('@')[0] };
     try {
-      let r = await C.cliente.from('perfis').select('id, nome, visual').eq('id', usuario.id).maybeSingle();
-      if (r.error) {   // banco ainda sem a coluna do visual (falta rodar o supabase/esquema.sql de novo)
+      let r = await C.cliente.from('perfis').select('id, nome, visual' + (usuario.is_anonymous ? ', chave_saida' : '')).eq('id', usuario.id).maybeSingle();
+      if (r.error) {   // banco ainda sem as colunas novas (falta rodar o supabase/esquema.sql de novo)
         console.warn('Contas: perfil', traduzir(r.error));
         r = await C.cliente.from('perfis').select('id, nome').eq('id', usuario.id).maybeSingle();
       }
+      if (!r.error && !r.data && usuario.is_anonymous) {   // login anônimo que o banco já apagou (o nome foi liberado)
+        try { await C.cliente.auth.signOut({ scope: 'local' }); } catch (e) { /* ok */ }
+        C.usuario = null; C.perfil = null;
+        return;
+      }
       C.perfil = r.data || reserva;
     } catch (e) { C.perfil = reserva; }
+    sinal();
     C.emit('mudou');
   }
   function aoSair() {
+    clearInterval(timerSinal); timerSinal = null;
     if (!C.usuario) return;
     C.usuario = null; C.perfil = null;
     C.emit('mudou');
   }
+  /* o jogo está aberto: um sinal agora e a cada minuto (o nome de convidado de quem sumiu fica livre em 3 minutos) */
+  let timerSinal = null;
+  function sinal() {
+    const mandar = () => { if (C.usuario) C.cliente.rpc('marcar_visto').then(() => {}, () => {}); };
+    mandar();
+    if (!timerSinal) timerSinal = setInterval(mandar, 60000);
+  }
+  /* fechou a página jogando sem conta: apaga o login anônimo e a sessão guardada. Com a página fechando, o navegador só
+     manda um texto simples (sendBeacon, sem cabeçalhos): vai a chave de saída do convidado, e a chave pública do site
+     no endereço. */
+  window.addEventListener('pagehide', () => {
+    if (!C.ativo() || !C.anonimo()) return;
+    const chave = C.perfil && C.perfil.chave_saida;
+    try {
+      if (chave && navigator.sendBeacon) navigator.sendBeacon(cfg().url + '/rest/v1/rpc/sair_convidado_chave?apikey=' + encodeURIComponent(cfg().chave), chave);
+    } catch (e) { /* ok: o banco libera o nome sozinho em 3 minutos */ }
+    try { localStorage.removeItem('res.sessao'); } catch (e) { /* ok */ }
+    C.saiuAoFechar = true;
+  });
+  // a página voltou do cache do navegador depois de sair: começa de novo
+  window.addEventListener('pageshow', (ev) => { if (ev.persisted && C.saiuAoFechar) location.reload(); });
 
   R.Contas = C;
 })(window.RES);

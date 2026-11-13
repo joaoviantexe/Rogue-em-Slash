@@ -22,6 +22,10 @@ create table if not exists public.perfis (
 create unique index if not exists perfis_nome_unico on public.perfis (lower(nome));
 -- O visual do boneco da sala: { corpo, chapeu: { id, cor }, oculos: { id, cor }, capacete: { id, cor } }
 alter table public.perfis add column if not exists visual jsonb;
+-- Último sinal do jogo aberto (a cada minuto): o nome de quem joga sem conta e sumiu fica livre (veja liberar_nome).
+alter table public.perfis add column if not exists visto_em timestamptz not null default now();
+-- Chave secreta de saída (só o dono lê): ao fechar a página, o jogo manda só ela (sair_convidado_chave), sem login.
+alter table public.perfis add column if not exists chave_saida uuid not null default gen_random_uuid();
 
 -- Amizades: "de" pediu para "para". Vira 'aceita' quando "para" aceita.
 create table if not exists public.amizades (
@@ -37,7 +41,7 @@ create table if not exists public.amizades (
 -- O nome vem do perfil (ninguém fala em nome de outro).
 create table if not exists public.mensagens (
   id bigint generated always as identity primary key,
-  de uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  de uuid default auth.uid() references auth.users (id) on delete set null,
   para uuid references auth.users (id) on delete cascade,
   nome text not null default '',
   para_nome text,
@@ -45,6 +49,10 @@ create table if not exists public.mensagens (
   criado_em timestamptz not null default now()
 );
 create index if not exists mensagens_criado on public.mensagens (criado_em desc);
+-- (quem saiu sem conta tem o login apagado: as mensagens dele ficam, sem o vínculo)
+alter table public.mensagens alter column de drop not null;
+alter table public.mensagens drop constraint if exists mensagens_de_fkey;
+alter table public.mensagens add constraint mensagens_de_fkey foreign key (de) references auth.users (id) on delete set null;
 
 -- Moedas: o saldo só muda pelas funções comprar_item e dar_moedas (e, no futuro, pelo pagamento).
 create table if not exists public.carteiras (
@@ -91,6 +99,50 @@ create table if not exists public.itens_comprados (
 -- Funções
 -- ---------------------------------------------------------------------------
 
+-- ----- nomes de quem joga sem conta -----
+-- O nome de quem joga sem conta fica reservado só enquanto ele joga: ao sair, o jogo apaga o login anônimo dele
+-- (sair_convidado); se o jogo fechou sem avisar, o nome fica livre quando ele está sem sinal há mais de 3 minutos.
+create or replace function public.convidado_parado(p uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from perfis pf join auth.users u on u.id = pf.id
+    where pf.id = p and u.is_anonymous and pf.visto_em < now() - interval '3 minutes');
+$$;
+
+-- Libera o nome de um convidado parado (apaga o login anônimo dele). Devolve true se o nome está livre.
+create or replace function public.liberar_nome(n text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare
+  dono uuid;
+begin
+  select id into dono from perfis where lower(nome) = lower(trim(n));
+  if dono is null then return true; end if;
+  if dono is distinct from auth.uid() and convidado_parado(dono) then
+    delete from auth.users where id = dono;
+    return true;
+  end if;
+  return false;
+end $$;
+
+-- O jogo está aberto (o jogo chama a cada minuto).
+create or replace function public.marcar_visto() returns void
+language sql security definer set search_path = public as $$
+  update perfis set visto_em = now() where id = auth.uid();
+$$;
+
+-- Quem joga sem conta saiu: apaga o login anônimo (o perfil vai junto e o nome fica livre).
+create or replace function public.sair_convidado() returns void
+language sql security definer set search_path = public as $$
+  delete from auth.users where id = auth.uid() and is_anonymous;
+$$;
+
+-- O mesmo, ao fechar a página: o navegador só consegue mandar um texto simples (navigator.sendBeacon), sem o login;
+-- vai a chave de saída do convidado. (Um parâmetro de texto sem nome: o PostgREST aceita o corpo em text/plain.)
+create or replace function public.sair_convidado_chave(text) returns void
+language sql security definer set search_path = public as $$
+  delete from auth.users u using perfis p
+  where p.id = u.id and u.is_anonymous and p.chave_saida::text = trim($1);
+$$;
+
 -- Cria o perfil quando alguém cria a conta (o nome vem do cadastro; se já existir, ganha um sufixo).
 create or replace function public.criar_perfil() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -99,6 +151,7 @@ declare
   nome_final text := base;
 begin
   if char_length(base) < 2 then base := 'Jogador'; nome_final := base; end if;
+  perform liberar_nome(nome_final);   -- (o nome de um convidado que sumiu fica livre)
   if exists (select 1 from perfis where lower(nome) = lower(nome_final)) then
     nome_final := left(base, 13) || '#' || substr(md5(new.id::text), 1, 4);
   end if;
@@ -113,7 +166,7 @@ create trigger ao_criar_conta after insert on auth.users
 -- Nome livre? (a tela de cadastro pergunta antes de criar a conta)
 create or replace function public.nome_disponivel(n text) returns boolean
 language sql stable security definer set search_path = public as $$
-  select not exists (select 1 from perfis where lower(nome) = lower(trim(n)));
+  select not exists (select 1 from perfis where lower(nome) = lower(trim(n)) and not convidado_parado(id));
 $$;
 
 -- Quem está jogando sem conta (login anônimo)?
@@ -130,6 +183,7 @@ declare
 begin
   if auth.uid() is null then raise exception 'sem login'; end if;
   if novo !~ '^[[:alnum:] _.-]{2,18}$' then return 'invalido'; end if;
+  perform liberar_nome(novo);
   if exists (select 1 from perfis where lower(nome) = lower(novo) and id <> auth.uid()) then return 'em_uso'; end if;
   update perfis set nome = novo where id = auth.uid();
   return 'ok';
@@ -338,6 +392,6 @@ create policy comprados_ler on public.itens_comprados for select to authenticate
 
 -- Funções que o site chama (as outras ficam fechadas: dar_moedas só roda no SQL Editor)
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public.nome_disponivel(text) to anon, authenticated;
-grant execute on function public.trocar_nome(text), public.pedir_amizade(uuid, text), public.responder_amizade(uuid, boolean),
+grant execute on function public.nome_disponivel(text), public.sair_convidado_chave(text) to anon, authenticated;
+grant execute on function public.marcar_visto(), public.sair_convidado(), public.trocar_nome(text), public.pedir_amizade(uuid, text), public.responder_amizade(uuid, boolean),
   public.remover_amizade(uuid), public.meus_amigos(), public.comprar_item(text), public.salvar_visual(jsonb) to authenticated;
