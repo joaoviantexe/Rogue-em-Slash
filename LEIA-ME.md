@@ -38,7 +38,7 @@ meio deles e ninguém sai da tela.
   público e gratuito do PeerJS só apresenta os aparelhos um ao outro — não existe servidor do jogo. Quem criou a sala é o
   anfitrião: ele decide quem está na sala e repassa a posição de todos ~20 vezes por segundo. Cada aparelho move os
   próprios jogadores (sem atraso para quem joga) e o anfitrião confere se a posição é possível.
-- Todos precisam da **mesma versão** do jogo (o menu mostra a versão).
+- Todos precisam da **mesma versão** do jogo (se for diferente, a sala avisa ao entrar).
 - Em algumas redes (4G, redes de empresa) a conexão direta pode falhar; aí é preciso um servidor TURN (veja
   "Próximos passos" abaixo).
 - Para testar sozinho: abra o jogo em **duas janelas** do navegador (uma cria a sala, a outra entra).

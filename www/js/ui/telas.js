@@ -102,15 +102,7 @@
       <p><button type="button" data-acao="adicionar" ${J.podeAdicionar() ? '' : 'disabled'}>Adicionar jogador</button> (até 4 no total, contando os da sala online)</p>
       <h2>Online</h2>
       ${online}
-      ${erro}
-      <h2>Controles</h2>
-      <ul>
-        <li>Teclado: WASD ou setas. Com dois jogadores no mesmo teclado, um usa WASD e o outro as setas.</li>
-        <li>Controle: analógico esquerdo ou direcional.</li>
-        <li>Celular: encoste o dedo na metade esquerda da tela e arraste.</li>
-        <li>Esc, Start ou o botão Menu: volta para este menu.</li>
-      </ul>
-      <p><small>Versão ${esc(R.VERSAO)}</small></p>`;
+      ${erro}`;
   }
 
   /* ---------- Desenhar e trocar ---------- */
