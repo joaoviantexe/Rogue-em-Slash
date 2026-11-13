@@ -87,7 +87,9 @@
   async function aoEnviar(form) {
     const d = Object.fromEntries(new FormData(form).entries()), tela = T.tela;
     if (tela === 'convidado') {
-      try { R.Contas.definirConvidado(d.nome); R.Fluxo.irSaguao(); } catch (e) { T.aviso(e.message); }
+      if (T.ocupado) return;
+      T.ocupado = true; T.aviso('Aguarde…');
+      try { await R.Contas.entrarComoConvidado(d.nome); R.Fluxo.irSaguao(); } catch (e) { T.aviso(e.message); } finally { T.ocupado = false; }
       return;
     }
     if (T.ocupado) return;

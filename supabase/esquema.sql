@@ -1,5 +1,7 @@
 -- Rogue em' Slash — banco de dados no Supabase. Baseado no do RL20 (supabase/esquema.sql).
 -- Contas (perfis), amigos, chat da sala e sussurros, moedas e o bazar de itens do boneco da sala.
+-- Quem joga sem conta entra com o login anônimo do Supabase (Authentication → Sign In / Providers → "Allow anonymous
+-- sign-ins"): tem um perfil com o nome que digitou e pode conversar, mas não tem amigos, moedas nem itens.
 -- Como usar: no painel do Supabase, abra "SQL Editor", cole este arquivo inteiro e clique em "Run".
 -- Pode rodar de novo depois de uma atualização do jogo: ele só cria o que ainda não existe e recria as funções.
 --
@@ -114,7 +116,13 @@ language sql stable security definer set search_path = public as $$
   select not exists (select 1 from perfis where lower(nome) = lower(trim(n)));
 $$;
 
--- Troca o nome de jogador (Configurações no celular). Devolve 'ok', 'invalido' ou 'em_uso'.
+-- Quem está jogando sem conta (login anônimo)?
+create or replace function public.eh_anonimo() returns boolean
+language sql stable as $$
+  select coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false);
+$$;
+
+-- Troca o nome de jogador (Configurações no celular; sem conta, o nome digitado ao entrar). Devolve 'ok', 'invalido' ou 'em_uso'.
 create or replace function public.trocar_nome(n text) returns text
 language plpgsql security definer set search_path = public as $$
 declare
@@ -137,16 +145,18 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Pede amizade (pelo id: clicando no jogador na sala; ou pelo nome: no app Amigos). Se a outra pessoa já tinha
--- pedido, vira amizade na hora. Devolve 'enviado', 'aceita', 'ja_existe', 'voce_mesmo' ou 'nao_encontrado'.
+-- pedido, vira amizade na hora. Devolve 'enviado', 'aceita', 'ja_existe', 'voce_mesmo', 'nao_encontrado' ou 'convidado'
+-- (a outra pessoa está sem conta). Sem conta não dá para pedir.
 create or replace function public.pedir_amizade(alvo uuid default null, n text default null) returns text
 language plpgsql security definer set search_path = public as $$
 declare
   eu uuid := auth.uid();
 begin
-  if eu is null then raise exception 'sem login'; end if;
+  if eu is null or eh_anonimo() then raise exception 'precisa de conta'; end if;
   if alvo is null and n is not null then select id into alvo from perfis where lower(nome) = lower(trim(n)); end if;
   if alvo is null or not exists (select 1 from perfis where id = alvo) then return 'nao_encontrado'; end if;
   if alvo = eu then return 'voce_mesmo'; end if;
+  if exists (select 1 from auth.users where id = alvo and is_anonymous) then return 'convidado'; end if;
   if sao_amigos(eu, alvo) or exists (select 1 from amizades where de = eu and para = alvo) then return 'ja_existe'; end if;
   if exists (select 1 from amizades where de = alvo and para = eu) then
     update amizades set status = 'aceita' where de = alvo and para = eu;
@@ -230,7 +240,7 @@ declare
   p integer;
   saldo integer;
 begin
-  if eu is null then raise exception 'sem login'; end if;
+  if eu is null or eh_anonimo() then raise exception 'precisa de conta'; end if;
   select preco into p from itens_bazar where id = item and ativo;
   if p is null then raise exception 'item indisponível'; end if;
   if exists (select 1 from itens_comprados where usuario = eu and itens_comprados.item = comprar_item.item) then raise exception 'já comprado'; end if;
@@ -300,7 +310,8 @@ drop policy if exists amizades_ler on public.amizades;
 create policy amizades_ler on public.amizades for select to authenticated
   using (auth.uid() in (de, para));
 
--- mensagens: o chat da sala todos leem (até sem conta); o sussurro, só quem mandou e quem recebeu; mandar, só com conta
+-- mensagens: o chat da sala todos leem; o sussurro, só quem mandou e quem recebeu; mandar pede um login (a conta ou o
+-- anônimo de quem joga sem conta)
 drop policy if exists mensagens_ler on public.mensagens;
 drop policy if exists mensagens_ler_sala on public.mensagens;
 drop policy if exists mensagens_enviar on public.mensagens;

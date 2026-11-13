@@ -27,7 +27,7 @@
     if (!O.eu) {
       const conta = R.Contas.usuario ? R.Contas.usuario.id : '';
       const cor = corDe(conta || ID_ABA);
-      O.eu = { id: ID_ABA, conta, nome: R.Contas.nome() || 'Convidado', cor, visual: R.Social.meuVisual(cor), x: 0, z: 2, f: Math.PI, v: R.VERSAO, mesa: null, sentado: null, t: 0 };
+      O.eu = { id: ID_ABA, conta, anon: R.Contas.anonimo(), nome: R.Contas.nome() || 'Convidado', cor, visual: R.Social.meuVisual(cor), x: 0, z: 2, f: Math.PI, v: R.VERSAO, mesa: null, sentado: null, t: 0 };
     }
     return O.eu;
   };
@@ -36,7 +36,7 @@
     if (!O.eu) return;
     const conta = R.Contas.usuario ? R.Contas.usuario.id : '';
     const cor = corDe(conta || ID_ABA);
-    Object.assign(O.eu, { conta, nome: R.Contas.nome() || 'Convidado', cor, visual: R.Social.meuVisual(cor) });
+    Object.assign(O.eu, { conta, anon: R.Contas.anonimo(), nome: R.Contas.nome() || 'Convidado', cor, visual: R.Social.meuVisual(cor) });
     track(true);
   };
 
@@ -96,7 +96,7 @@
   function saneado(p) {
     const m = p.mesa && typeof p.mesa === 'object' ? p.mesa : null, s = p.sentado && typeof p.sentado === 'object' ? p.sentado : null;
     return {
-      id: txt(p.id, 40), conta: /^[0-9a-f-]{36}$/i.test(p.conta) ? p.conta : '', nome: txt(p.nome, 18) || 'Jogador', cor: /^#[0-9a-f]{6}$/i.test(p.cor) ? p.cor : CORES[0],
+      id: txt(p.id, 40), conta: /^[0-9a-f-]{36}$/i.test(p.conta) ? p.conta : '', anon: !!p.anon, nome: txt(p.nome, 18) || 'Jogador', cor: /^#[0-9a-f]{6}$/i.test(p.cor) ? p.cor : CORES[0],
       visual: R.Social.visualValido(p.visual, /^#[0-9a-f]{6}$/i.test(p.cor) ? p.cor : CORES[0]),
       x: num(p.x, -50, 50, 0), z: num(p.z, -50, 50, 0), f: num(p.f, -10, 10, 0), v: txt(p.v, 10), t: num(p.t, 0, 1e15, 0),
       mesa: m ? { codigo: /^[A-Z0-9]{4}$/.test(m.codigo) ? m.codigo : null, desde: num(m.desde, 0, 1e15, 0), jogando: !!m.jogando } : null,
@@ -113,7 +113,7 @@
       const o = O.outros.get(s.id);
       if (!o) { O.outros.set(s.id, Object.assign(s, { vx: 0, vz: 0, recebido: performance.now() })); continue; }
       if (s.t >= o.t) Object.assign(o, s, { vx: 0, vz: 0, recebido: performance.now() });   // (a presença pode chegar depois de um movimento mais novo)
-      else Object.assign(o, { nome: s.nome, cor: s.cor, visual: s.visual, conta: s.conta, v: s.v, mesa: s.mesa, sentado: s.sentado });
+      else Object.assign(o, { nome: s.nome, cor: s.cor, visual: s.visual, conta: s.conta, anon: s.anon, v: s.v, mesa: s.mesa, sentado: s.sentado });
     }
     for (const id of [...O.outros.keys()]) if (!vistos.has(id)) O.outros.delete(id);
     O.emit('sync');

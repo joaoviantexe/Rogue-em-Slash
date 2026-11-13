@@ -1,5 +1,8 @@
 /* Rogue em' Slash — Contas (login e senha) pelo Supabase, como no RL20 (js/rede/contas.js). A conta é OPCIONAL (dá
    para jogar sem) e não tem confirmação de e-mail: criou, já entra (no Supabase, "Confirm email" fica desligado).
+   Quem joga sem conta entra com o login anônimo do Supabase (com o nome que digitou): assim pode conversar, com as
+   mesmas regras de quem tem conta (nome único, 1 mensagem por segundo). Sem o login anônimo ligado no projeto, o
+   convidado joga do mesmo jeito, só não manda mensagem.
    Só liga quando R.CONFIG.supabase tem a URL e a chave publicável do projeto (www/js/config.js).
    O banco (tabela de perfis e as regras de quem vê o quê) está em supabase/esquema.sql. */
 (function (R) {
@@ -13,7 +16,8 @@
 
   const cfg = () => (R.CONFIG && R.CONFIG.supabase) || {};
   C.ativo = () => !!(cfg().url && cfg().chave && window.supabase && window.supabase.createClient);
-  C.logado = () => !!C.usuario;
+  C.anonimo = () => !!(C.usuario && C.usuario.is_anonymous);   // jogando sem conta (login anônimo)
+  C.logado = () => !!C.usuario && !C.anonimo();                 // com uma conta de verdade
   /* o nome do jogador: o da conta ou, sem conta, o que ele digitou ao entrar ("Jogar sem conta") */
   C.convidado = (() => { try { return localStorage.getItem(CHAVE_CONVIDADO) || ''; } catch (e) { return ''; } })();
   C.nome = () => (C.perfil ? C.perfil.nome : C.convidado);
@@ -103,6 +107,33 @@
   C.sair = async function () {
     try { await C.cliente.auth.signOut(); } catch (e) { console.warn('Contas:', e); }
     aoSair();
+  };
+  /* "Jogar sem conta": guarda o nome e entra com o login anônimo (ou reaproveita o de antes, trocando o nome) */
+  C.entrarComoConvidado = async function (nome) {
+    C.definirConvidado(nome);
+    nome = C.convidado;
+    if (!C.ativo()) return;
+    if (C.logado()) await C.sair();
+    if (C.anonimo()) {
+      if (C.perfil && C.perfil.nome === nome) return;
+      const r = await C.cliente.rpc('trocar_nome', { n: nome });
+      if (r.error) throw new Error(traduzir(r.error));
+      if (r.data === 'em_uso') throw new Error('Esse nome já está em uso. Escolha outro.');
+      if (r.data === 'invalido') throw new Error('O nome precisa ter de 2 a 18 letras, números, espaço, ponto, hífen ou _.');
+      if (C.perfil) C.perfil.nome = nome;
+      C.emit('mudou');
+      return;
+    }
+    const livre = await C.cliente.rpc('nome_disponivel', { n: nome });
+    if (livre.error) throw new Error(traduzir(livre.error));
+    if (!livre.data) throw new Error('Esse nome já está em uso. Escolha outro.');
+    const { data, error } = await C.cliente.auth.signInAnonymously({ options: { data: { nome } } });
+    if (error) {   // o login anônimo está desligado no projeto: joga sem conversar
+      console.warn('Contas: login anônimo:', traduzir(error));
+      C.semAnonimo = true;
+      return;
+    }
+    if (data && data.user) await aoEntrar(data.user);
   };
   C.emailLembrado = () => { try { return localStorage.getItem(CHAVE_EMAIL) || ''; } catch (e) { return ''; } };
   C.lembrarEmail = (email) => { try { localStorage.setItem(CHAVE_EMAIL, email.trim()); } catch (e) { /* modo privado */ } };

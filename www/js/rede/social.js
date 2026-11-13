@@ -15,6 +15,8 @@
   const C = () => R.Contas;
   const cli = () => C().cliente;
   S.comConta = () => C().ativo() && C().logado();
+  /* conversar pede um login: a conta ou o anônimo de quem joga sem conta */
+  S.podeConversar = () => C().ativo() && !!C().usuario;
   async function rpc(nome, args) {
     const { data, error } = await cli().rpc(nome, args || {});
     if (error) throw new Error(traduzir(error));
@@ -105,7 +107,7 @@
   };
   const RESPOSTAS = {
     enviado: 'Pedido de amizade enviado.', aceita: 'Agora vocês são amigos.', ja_existe: 'Vocês já são amigos (ou o pedido já foi enviado).',
-    voce_mesmo: 'Esse é você.', nao_encontrado: 'Jogador não encontrado.',
+    voce_mesmo: 'Esse é você.', nao_encontrado: 'Jogador não encontrado.', convidado: 'Esse jogador está sem conta.',
   };
   /* pelo id da conta (clicando no jogador) ou pelo nome (no app Amigos). Devolve a frase da resposta. */
   S.pedirAmizade = async function (op) {
@@ -144,7 +146,7 @@
   };
   /* para: o id da conta de quem recebe o sussurro (ou nada: a sala toda) */
   S.enviar = async function (texto, para) {
-    if (!S.comConta()) throw new Error('Entre numa conta para conversar.');
+    if (!S.podeConversar()) throw new Error('O chat sem conta ainda não está ligado (login anônimo no Supabase).');
     texto = String(texto || '').trim();
     if (!texto) return;
     const { data, error } = await cli().from('mensagens').insert({ texto, para: para || null }).select('id, de, para, nome, para_nome, texto, criado_em').single();

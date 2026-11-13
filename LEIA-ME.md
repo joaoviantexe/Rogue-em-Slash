@@ -18,7 +18,8 @@ desenvolvido por partes.
 - **Chat da sala** (Enter) e **sussurros**; **clicar em outro jogador** abre o menu dele: **Sussurrar** e **Adicionar amigo**.
 - **Celular** (Esc): sobe do canto da tela, com os apps **Amigos** (amigos, pedidos e adicionar pelo nome) e
   **Configurações** (nome de jogador, senha nova e sair da conta).
-- Chat, amigos, sussurros e itens pedem conta; sem conta dá para andar na sala, ler o chat, jogar e trocar a cor do corpo.
+- **Sem conta** dá para andar na sala, **conversar e sussurrar**, jogar e trocar a cor do corpo (pelo login anônimo do
+  Supabase, com o nome que o jogador digitou). Amigos, moedas e itens pedem conta.
 - **Mapa de teste**: um chão limpo (ladrilhos em xadrez, para ver o movimento), a parede do fundo e mais nada (`www/js/jogo/mapa.js`).
 - **Personagem**: um humano em **3D low poly no estilo Megaman Legends**, com o modelo do RL20 (veja abaixo).
 - **Movimento de beat 'em up**: o personagem é visto de lado e só olha para a esquerda ou para a direita. Frente e trás
@@ -106,7 +107,11 @@ A ordem: **1)** Supabase, **2)** hospedagem (Cloudflare ou Vercel), **3)** volta
    **Nunca** coloque no jogo a chave secreta (`sb_secret_…` / `service_role`).
 4. Em **Authentication → Sign In / Providers → Email**, **desligue "Confirm email"** e salve. O jogo não tem confirmação
    de e-mail: criou a conta, já entra. (Com ele ligado, o cadastro avisa que o servidor ainda pede confirmação.)
-5. Envie (commit e push) o `config.js` com a URL e a chave.
+5. Em **Authentication → Sign In / Providers**, ligue **"Allow anonymous sign-ins"** e salve. É o que deixa quem joga
+   **sem conta** conversar: ele ganha um login anônimo com o nome que digitou (nome único, as mesmas regras do chat).
+   Sem isso, o convidado joga do mesmo jeito, só não manda mensagem. Os logins anônimos ficam em **Authentication →
+   Users** (marcados como anônimos); dá para apagar os antigos de tempos em tempos.
+6. Envie (commit e push) o `config.js` com a URL e a chave.
 
 O único e-mail que o jogo manda é o de **"Esqueci minha senha"**. O envio padrão do Supabase serve **só para testes**:
 ele só entrega para os e-mails da **equipe do projeto** (Organization → Team no Supabase) e no máximo **2 e-mails por

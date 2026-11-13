@@ -1,6 +1,6 @@
 /* Rogue em' Slash — Chat da sala: as últimas mensagens no canto de baixo à esquerda (na sala) e o campo de digitar,
    que abre com Enter (ou T, ou tocando nas mensagens) e fecha com Esc. Os sussurros (para um jogador só) aparecem em
-   outra cor. Mandar mensagem pede uma conta; sem conta dá para ler. As mensagens vêm de R.Social. */
+   outra cor. Dá para conversar com ou sem conta (sem conta, pelo login anônimo). As mensagens vêm de R.Social. */
 (function (R) {
   'use strict';
 
@@ -35,7 +35,7 @@
   /* abre o campo (para: o id da conta de quem recebe um sussurro) */
   C.abrir = function (para, paraNome) {
     if (!el) return;
-    if (!R.Social.comConta()) { C.aviso(R.Contas.ativo() ? 'Entre numa conta para conversar.' : 'O chat precisa das contas (Supabase) configuradas.'); return; }
+    if (!R.Social.podeConversar()) { C.aviso(R.Contas.ativo() ? 'O chat sem conta ainda não está ligado (login anônimo no Supabase).' : 'O chat precisa das contas (Supabase) configuradas.'); return; }
     C.para = para || null; C.paraNome = paraNome || '';
     C.aberto = true;
     el.classList.add('digitando');

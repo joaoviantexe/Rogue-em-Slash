@@ -1,5 +1,5 @@
 /* Rogue em' Slash — Menu de outro jogador: clicando (ou tocando) num jogador na sala, aparece o nome dele com
-   "Sussurrar" (abre o chat só para ele) e "Adicionar amigo". As duas coisas pedem conta dos dois lados. */
+   "Sussurrar" (abre o chat só para ele) e "Adicionar amigo". Sussurrar vale com ou sem conta; amizade, só entre contas. */
 (function (R) {
   'use strict';
 
@@ -10,15 +10,15 @@
   function render(aviso) {
     if (aviso != null) MJ.aviso = aviso;
     aviso = MJ.aviso;
-    const o = MJ.alvo, S = R.Social, eu = S.comConta(), ele = !!o.conta;
+    const o = MJ.alvo, S = R.Social, ele = !!o.conta;
     const amigo = S.amigos.find((a) => a.id === o.conta);
     let botoes = '';
-    if (eu && ele) {
-      botoes += '<button type="button" data-acao="sussurrar">Sussurrar</button>';
+    if (S.podeConversar() && ele) botoes += '<button type="button" data-acao="sussurrar">Sussurrar</button>';
+    if (S.comConta() && ele && !o.anon) {
       if (!amigo) botoes += '<button type="button" data-acao="amigo">Adicionar amigo</button>';
       else if (amigo.situacao === 'recebido') botoes += '<button type="button" data-acao="aceitar">Aceitar amizade</button>';
       else botoes += `<p>${amigo.situacao === 'amigo' ? 'Vocês são amigos.' : 'Pedido de amizade enviado.'}</p>`;
-    } else botoes = `<p>${eu ? 'Este jogador está sem conta.' : 'Entre numa conta para sussurrar e adicionar amigos.'}</p>`;
+    }
     el.innerHTML = `<strong>${esc(o.nome)}</strong>${botoes}${aviso ? `<p>${esc(aviso)}</p>` : ''}`;
   }
 
