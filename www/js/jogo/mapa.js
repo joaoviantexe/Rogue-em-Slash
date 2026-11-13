@@ -8,12 +8,12 @@
   R.MAPA_TESTE = {
     nome: 'Mapa de teste',
     largura: 2400,       // de x = 0 até x = largura
-    profundidade: 440,   // de z = 0 (a parede) até z = profundidade (a borda da frente)
-    parede: 200,         // altura da parede do fundo
+    profundidade: 360,   // de z = 0 (a parede) até z = profundidade (a borda da frente)
+    parede: 340,         // altura da parede do fundo (sobe além do alto da tela)
     espessura: 26,       // a borda do chão que aparece na frente
     ladrilho: 80,
     margem: { x: 40, fundo: 30, frente: 20 },   // até onde os pés chegam
-    inicio: { x: 360, z: 250 },
+    inicio: { x: 300, z: 190 },
     cores: {
       fundo: ['#151724', '#262a3c'], parede: '#555d74', paredeTopo: '#6c758e', painel: '#4b5268', rodape: '#3f455a',
       chao: ['#c9cfdc', '#bec5d3'], linha: '#adb5c6', borda: '#7d859a', bordaLinha: '#666e82',

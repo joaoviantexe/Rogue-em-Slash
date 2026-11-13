@@ -2,16 +2,19 @@
 <html lang="pt-br">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#151724">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rogue em' Slash</title>
 <link rel="stylesheet" href="css/jogo.css">
 </head>
 <body>
+<main id="telas"><p>Carregando…</p></main>
 <canvas id="tela"></canvas>
-<div id="carregando">Carregando…</div>
+<button type="button" id="botao-menu">Menu</button>
 
 <!-- Sem módulos nem servidor (como o RL20): abre com dois cliques e roda igual no Android e no PC. -->
+<script src="js/config.js"></script>
+<script src="js/lib/supabase.min.js"></script>
+<script src="js/lib/peerjs.min.js"></script>
 <script src="js/nucleo/util.js"></script>
 <script src="js/nucleo/entrada.js"></script>
 <script src="js/modelo/aparencia.js"></script>
@@ -20,7 +23,10 @@
 <script src="js/modelo/sprites.js"></script>
 <script src="js/jogo/mapa.js"></script>
 <script src="js/jogo/personagem.js"></script>
+<script src="js/rede/contas.js"></script>
+<script src="js/rede/rede.js"></script>
 <script src="js/jogo/jogo.js"></script>
+<script src="js/ui/telas.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

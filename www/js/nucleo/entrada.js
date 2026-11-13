@@ -1,7 +1,7 @@
-/* Rogue em' Slash — Entrada: teclado, controles (até 4, Gamepad API) e toque (celular/tablet).
-   Como no RL20 (js/nucleo/entrada.js e js/nucleo/toque.js), o jogo nunca lê teclas diretamente: cada "dispositivo"
-   vira um movimento { x, y } (x para a direita, y para baixo na tela, de -1 a 1). Por enquanto só o movimento.
-   Cada jogador terá o seu dispositivo (4 jogadores locais); hoje há só o jogador 1, que usa o que estiver mexendo. */
+/* Rogue em' Slash — Entrada: teclado (2 jogadores no mesmo teclado: WASD e setas), até 4 controles (Gamepad API) e
+   toque (celular/tablet). Como no RL20 (js/nucleo/entrada.js e js/nucleo/toque.js), o jogo nunca lê teclas
+   diretamente: cada jogador deste aparelho tem um "dispositivo", que vira um movimento { x, y } (x para a direita, y
+   para baixo na tela, de -1 a 1). Por enquanto só o movimento (e abrir o menu). */
 (function (R) {
   'use strict';
 
@@ -10,35 +10,51 @@
     temToque,
     // celular/tablet sem teclado nem mouse (o modelo 3D desenha sem antialiasing nesses aparelhos: mais leve)
     soToque: temToque && !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches),
+    ativo: false,   // só lê os controles com o jogo na tela (no menu, o teclado é dos campos de texto)
+    aoMenu: null,   // Esc ou Start: abre o menu
   };
 
-  /* ---------- Teclado: WASD ou setas ---------- */
+  /* Os dispositivos que um jogador pode usar. 'qualquer': o que nenhum outro jogador deste aparelho estiver usando. */
+  I.DISPOSITIVOS = [
+    ['qualquer', 'Qualquer um (o que sobrar)'],
+    ['tecladoA', 'Teclado: WASD'],
+    ['tecladoB', 'Teclado: setas'],
+    ['controle0', 'Controle 1'], ['controle1', 'Controle 2'], ['controle2', 'Controle 3'], ['controle3', 'Controle 4'],
+    ['toque', 'Toque na tela'],
+  ];
+  const REAIS = I.DISPOSITIVOS.map((d) => d[0]).filter((d) => d !== 'qualquer');
+
+  /* ---------- Teclado ---------- */
   const TECLAS = {
-    cima: ['KeyW', 'ArrowUp'], baixo: ['KeyS', 'ArrowDown'], esquerda: ['KeyA', 'ArrowLeft'], direita: ['KeyD', 'ArrowRight'],
+    tecladoA: { cima: 'KeyW', baixo: 'KeyS', esquerda: 'KeyA', direita: 'KeyD' },
+    tecladoB: { cima: 'ArrowUp', baixo: 'ArrowDown', esquerda: 'ArrowLeft', direita: 'ArrowRight' },
   };
-  const DO_JOGO = new Set(Object.values(TECLAS).flat());
+  const DO_JOGO = new Set([...Object.values(TECLAS.tecladoA), ...Object.values(TECLAS.tecladoB)]);
   const apertadas = new Set();
   window.addEventListener('keydown', (ev) => {
+    if (!I.ativo) return;
+    if (ev.code === 'Escape') { ev.preventDefault(); if (I.aoMenu) I.aoMenu(); return; }
     if (!DO_JOGO.has(ev.code)) return;
     ev.preventDefault();   // (as setas não rolam a página)
     apertadas.add(ev.code);
   });
   window.addEventListener('keyup', (ev) => { apertadas.delete(ev.code); });
   window.addEventListener('blur', () => { apertadas.clear(); });   // trocou de janela: nada fica preso
-  const algumaDe = (l) => l.some((c) => apertadas.has(c));
-  function teclado() {
-    let x = (algumaDe(TECLAS.direita) ? 1 : 0) - (algumaDe(TECLAS.esquerda) ? 1 : 0);
-    let y = (algumaDe(TECLAS.baixo) ? 1 : 0) - (algumaDe(TECLAS.cima) ? 1 : 0);
+  function teclado(t) {
+    let x = (apertadas.has(t.direita) ? 1 : 0) - (apertadas.has(t.esquerda) ? 1 : 0);
+    let y = (apertadas.has(t.baixo) ? 1 : 0) - (apertadas.has(t.cima) ? 1 : 0);
     if (x && y) { x *= Math.SQRT1_2; y *= Math.SQRT1_2; }   // na diagonal, a mesma velocidade
     return { x, y };
   }
 
   /* ---------- Controles (Gamepad API, mapeamento "standard": Xbox / PlayStation) ----------
-     Analógico esquerdo (com zona morta) ou o direcional (botões 12 a 15). */
+     Analógico esquerdo (com zona morta) ou o direcional (botões 12 a 15); Start (9) abre o menu. */
   const ZONA_MORTA = 0.22;
+  const gamepad = (i) => { const l = navigator.getGamepads ? navigator.getGamepads() : []; const g = l && l[i]; return g && g.connected ? g : null; };
+  I.controleConectado = (i) => !!gamepad(i);
   function controle(i) {
-    const gp = navigator.getGamepads ? navigator.getGamepads()[i] : null;
-    if (!gp || !gp.connected) return null;
+    const gp = gamepad(i);
+    if (!gp) return { x: 0, y: 0 };
     const bt = (n) => !!(gp.buttons[n] && gp.buttons[n].pressed);
     let x = (bt(15) ? 1 : 0) - (bt(14) ? 1 : 0), y = (bt(13) ? 1 : 0) - (bt(12) ? 1 : 0);
     if (x || y) {
@@ -50,6 +66,17 @@
     const k = Math.min(1, (m - ZONA_MORTA) / (1 - ZONA_MORTA)) / m;   // (sai do zero na borda da zona morta)
     return { x: ax * k, y: ay * k };
   }
+  const startAntes = [false, false, false, false];
+  /* chamado a cada quadro: o Start de qualquer controle abre o menu */
+  I.atualizar = function () {
+    for (let i = 0; i < 4; i++) {
+      const gp = gamepad(i), s = !!(gp && gp.buttons[9] && gp.buttons[9].pressed);
+      if (s && !startAntes[i] && I.ativo && I.aoMenu) I.aoMenu();
+      startAntes[i] = s;
+    }
+  };
+  window.addEventListener('gamepadconnected', () => { if (I.aoMudarControles) I.aoMudarControles(); });
+  window.addEventListener('gamepaddisconnected', () => { if (I.aoMudarControles) I.aoMudarControles(); });
 
   /* ---------- Toque: direcional que nasce onde o polegar encosta (metade esquerda da tela) ---------- */
   const T = { x: 0, y: 0, stick: null };
@@ -88,21 +115,32 @@
     zona.addEventListener('pointermove', mover);
     zona.addEventListener('pointerup', soltar);
     zona.addEventListener('pointercancel', soltar);
-    window.addEventListener('blur', () => soltar());
+    I.soltarToque = () => soltar();
   }
   I.iniciar = function () { if (temToque) criarToque(); };
 
-  /* ---------- Movimento de um jogador ----------
-     slot: 0 a 3. Por enquanto só existe o jogador 1 (slot 0), que usa qualquer dispositivo: o que estiver mais
-     inclinado entre o teclado, o toque e os controles. */
-  I.movimento = function (slot) {
-    if (slot !== 0) return { x: 0, y: 0 };
-    let melhor = teclado(), m = Math.hypot(melhor.x, melhor.y);
-    const cands = [{ x: T.x, y: T.y }];
-    for (let i = 0; i < 4; i++) { const c = controle(i); if (c) cands.push(c); }
-    for (const c of cands) { const mc = Math.hypot(c.x, c.y); if (mc > m) { melhor = c; m = mc; } }
+  /* ---------- Movimento ---------- */
+  function deDispositivo(d) {
+    if (d === 'tecladoA' || d === 'tecladoB') return teclado(TECLAS[d]);
+    if (d === 'toque') return { x: T.x, y: T.y };
+    const m = /^controle(\d)$/.exec(d);
+    return m ? controle(+m[1]) : { x: 0, y: 0 };
+  }
+  /* O movimento de um dispositivo. ocupados: os que outros jogadores deste aparelho usam (o 'qualquer' pula esses e
+     fica com o mais inclinado dos que sobram). */
+  I.movimento = function (d, ocupados) {
+    if (!I.ativo) return { x: 0, y: 0 };
+    if (d !== 'qualquer') return deDispositivo(d);
+    let melhor = { x: 0, y: 0 }, m = 0;
+    for (const r of REAIS) {
+      if (ocupados && ocupados.has(r)) continue;
+      const c = deDispositivo(r), mc = Math.hypot(c.x, c.y);
+      if (mc > m) { melhor = c; m = mc; }
+    }
     return melhor;
   };
+  /* solta tudo (ao abrir o menu: ninguém continua andando sozinho) */
+  I.soltarTudo = function () { apertadas.clear(); if (I.soltarToque) I.soltarToque(); };
 
   R.Input = I;
 })(window.RES);
