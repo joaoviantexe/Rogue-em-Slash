@@ -4,7 +4,7 @@ Jogo 2.5D no estilo **beat 'em up** (como Streets of Rage e Castle Crashers) par
 desenvolvido por partes.
 
 ## O que já tem
-- **Login**: HTML puro, sem estilo, com o conteúdo centralizado. A **conta é opcional** ("Jogar sem conta"); quem
+- **Login**: HTML puro, sem estilo, com o conteúdo centralizado. A **conta é opcional** ("Jogar sem conta", digitando só o nome); quem
   quiser cria uma (nome de jogador, e-mail e senha) e já entra, **sem confirmação de e-mail**. Também tem "Esqueci minha
   senha". Quem já tinha entrado antes vê "Conectado como …" com **Continuar** e **Sair da conta**.
 - **Sala** (`www/js/saguao/`): uma sala vazia vista de cima, onde cada jogador anda com um **boneco 3D Frutiger Aero**

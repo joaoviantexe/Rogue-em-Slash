@@ -5,7 +5,7 @@
 (function (R) {
   'use strict';
 
-  const CHAVE_EMAIL = 'res.email';
+  const CHAVE_EMAIL = 'res.email', CHAVE_CONVIDADO = 'res.convidado';
   const C = { cliente: null, usuario: null, perfil: null, pronto: false, ouvintes: {} };
 
   C.on = (ev, fn) => { (C.ouvintes[ev] = C.ouvintes[ev] || []).push(fn); };
@@ -14,7 +14,17 @@
   const cfg = () => (R.CONFIG && R.CONFIG.supabase) || {};
   C.ativo = () => !!(cfg().url && cfg().chave && window.supabase && window.supabase.createClient);
   C.logado = () => !!C.usuario;
-  C.nome = () => (C.perfil ? C.perfil.nome : '');
+  /* o nome do jogador: o da conta ou, sem conta, o que ele digitou ao entrar ("Jogar sem conta") */
+  C.convidado = (() => { try { return localStorage.getItem(CHAVE_CONVIDADO) || ''; } catch (e) { return ''; } })();
+  C.nome = () => (C.perfil ? C.perfil.nome : C.convidado);
+  C.NOME_VALIDO = /^[\p{L}\p{N} _.-]{2,18}$/u;
+  C.definirConvidado = function (nome) {
+    nome = String(nome || '').trim();
+    if (!C.NOME_VALIDO.test(nome)) throw new Error('O nome precisa ter de 2 a 18 letras, números, espaço, ponto, hífen ou _.');
+    C.convidado = nome;
+    try { localStorage.setItem(CHAVE_CONVIDADO, nome); } catch (e) { /* modo privado: vale só agora */ }
+    C.emit('mudou');
+  };
   /* quem eu sou, para mandar ao anfitrião de uma sala online */
   C.resumo = () => (C.usuario ? { id: C.usuario.id, nome: C.nome() } : null);
 
@@ -69,7 +79,7 @@
   /* Cria a conta e já entra (sem confirmação de e-mail). */
   C.criarConta = async function (nome, email, senha) {
     nome = nome.trim();
-    if (!/^[\p{L}\p{N} _.-]{2,18}$/u.test(nome)) throw new Error('O nome precisa ter de 2 a 18 letras, números, espaço, ponto, hífen ou _.');
+    if (!C.NOME_VALIDO.test(nome)) throw new Error('O nome precisa ter de 2 a 18 letras, números, espaço, ponto, hífen ou _.');
     const livre = await C.cliente.rpc('nome_disponivel', { n: nome });
     if (livre.error) throw new Error(traduzir(livre.error));
     if (!livre.data) throw new Error('Esse nome de jogador já está em uso.');

@@ -30,7 +30,7 @@
     const v = B.visual, aba = B.aba;
     let corpo = '';
     if (aba === 'corpo') {
-      corpo = `<label>Cor do corpo <input type="color" data-cor="corpo" value="${esc(v.corpo)}"></label><p>A cor do corpo é grátis.</p>`;
+      corpo = `<label>Cor do corpo <input type="color" data-cor="corpo" value="${esc(v.corpo)}"></label>`;
     } else {
       const atual = v[aba], lista = itensDe(aba);
       corpo = `<ul class="bz-itens"><li><button type="button" data-item="" class="${atual ? '' : 'equipado'}">Nenhum</button></li>${lista.map((i) =>
@@ -44,7 +44,7 @@
       if (aba === 'capacete') corpo += '<p><small>O capacete cobre a cabeça: com ele não vai chapéu nem óculos.</small></p>';
     }
     el.innerHTML = `<h2>Bazar</h2>
-      <p>${S().comConta() ? 'Moedas: <b>' + S().moedas + '</b>' : 'Sem conta: só a cor do corpo.'}</p>
+      ${S().comConta() ? '<p>Moedas: <b>' + S().moedas + '</b></p>' : ''}
       <div class="bz-abas">${ABAS.map(([id, nome]) => `<button type="button" data-aba="${id}" class="${id === aba ? 'atual' : ''}">${nome}</button>`).join('')}</div>
       ${corpo}
       <p class="bz-aviso">${esc(B.aviso)}</p>

@@ -1,6 +1,7 @@
 /* Rogue em' Slash — Tela de login (HTML puro, sem estilo: só o conteúdo centralizado). Aparece antes da sala.
    A conta é opcional ("Jogar sem conta") e não tem confirmação de e-mail: criou, já entra.
-   - entrar / criar / esqueci / novaSenha; conectado: quem já tinha entrado antes (Continuar ou Sair da conta). */
+   - entrar / criar / esqueci / novaSenha; conectado: quem já tinha entrado antes (Continuar ou Sair da conta);
+     convidado: sem conta, o jogador digita o nome dele. */
 (function (R) {
   'use strict';
 
@@ -24,7 +25,7 @@
       </form>
       ${status()}
       <p>${ir('criar', 'Criar conta')} ${ir('esqueci', 'Esqueci minha senha')}</p>` : ''}
-      <p>${botao('semConta', 'Jogar sem conta')}</p>`,
+      <p>${ir('convidado', 'Jogar sem conta')}</p>`,
     criar: () => `<h1>Criar conta</h1>
       <form data-form="criar">
         ${campo('Nome de jogador', 'nome', 'text', 'maxlength="18" autocomplete="nickname" required')}
@@ -50,6 +51,13 @@
         <p><button type="submit">Salvar senha</button></p>
       </form>
       ${status()}`,
+    convidado: () => `<h1>Jogar sem conta</h1>
+      <form data-form="convidado">
+        ${campo('Seu nome', 'nome', 'text', `maxlength="18" autocomplete="nickname" required value="${esc(R.Contas.convidado)}"`)}
+        <p><button type="submit">Jogar</button></p>
+      </form>
+      ${status()}
+      <p>${ir('entrar', 'Voltar')}</p>`,
     conectado: () => `<h1>Rogue em' Slash</h1>
       <p>Conectado como <strong>${esc(R.Contas.nome())}</strong>.</p>
       <p>${botao('continuar', 'Continuar')} ${botao('sairConta', 'Sair da conta')}</p>`,
@@ -78,6 +86,10 @@
   /* ---------- Ações ---------- */
   async function aoEnviar(form) {
     const d = Object.fromEntries(new FormData(form).entries()), tela = T.tela;
+    if (tela === 'convidado') {
+      try { R.Contas.definirConvidado(d.nome); R.Fluxo.irSaguao(); } catch (e) { T.aviso(e.message); }
+      return;
+    }
     if (T.ocupado) return;
     if (d.email) T.email = d.email;
     if ((tela === 'criar' || tela === 'novaSenha') && d.senha !== d.senha2) { T.aviso('As duas senhas não são iguais.'); return; }
@@ -105,7 +117,7 @@
   async function aoClicar(b) {
     const a = b.dataset.acao;
     if (a === 'ir') T.mostrar(b.dataset.tela);
-    else if (a === 'semConta' || a === 'continuar') R.Fluxo.irSaguao();
+    else if (a === 'continuar') R.Fluxo.irSaguao();
     else if (a === 'sairConta') { await R.Contas.sair(); T.mostrar('entrar'); }
   }
 

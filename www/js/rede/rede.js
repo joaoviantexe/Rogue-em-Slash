@@ -162,7 +162,7 @@
       conn.on('open', () => {
         clearTimeout(tempo);
         N.status = 'Conectado, esperando o anfitrião…'; N.emit('mudou');
-        enviar(conn, { t: 'ola', v: R.VERSAO, conta: R.Contas.resumo() || { id: '', nome: 'Jogador' }, locais: R.Jogo.indicesLocais() });
+        enviar(conn, { t: 'ola', v: R.VERSAO, conta: R.Contas.resumo() || { id: '', nome: R.Contas.nome() || 'Jogador' }, locais: R.Jogo.indicesLocais() });
       });
       conn.on('data', (msg) => aoMensagemCliente(msg));
       // (quando eu mesmo saio, N.conn já é outra: não é a conexão que caiu)
